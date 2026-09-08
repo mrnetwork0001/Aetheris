@@ -1,0 +1,523 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  AETHERIS — Autonomous DeAI Agency & Micro-Treasury Subgraph
+#  Network: Hedera EVM Testnet (chain id 296) — `hedera-testnet`
+#
+#  Modelled directly against the FROZEN interface
+#  `contracts/interfaces/IAetherisEvents.sol`. Every enum below mirrors the
+#  Solidity enum of the same name, member-for-member, in declaration order.
+#
+#  Design notes
+#   • Addresses and hashes are `Bytes`, never `String`.
+#   • Token amounts are `BigInt` (raw base units — decimals are resolved in the
+#     UI, since HTS tokens do not expose ERC-20 `decimals()` uniformly).
+#   • Ratios are `BigDecimal`.
+#   • Reverse relations use `@derivedFrom` so no mapping ever maintains an
+#     unbounded array by hand.
+#   • Every counter is an incrementally maintained running aggregate — no
+#     handler ever recomputes a total by scanning children.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── Enums (mirror IAetherisEvents.sol) ──────────────────────────────────────
+
+"Lifecycle state of a client job held by the agency. Mirrors `IAetherisEvents.JobStatus`."
+enum JobStatus {
+  "0 — never created (defensive stub only)"
+  None
+  "1 — client deposit escrowed"
+  Funded
+  "2 — at least one sub-agent assigned"
+  Dispatched
+  "3 — all tasks reported complete"
+  Completed
+  "4 — sub-agents paid, margin swept to treasury"
+  Settled
+  "5 — deposit returned to client"
+  Refunded
+}
+
+"Lifecycle state of a single sub-agent task. Mirrors `IAetherisEvents.TaskStatus`."
+enum TaskStatus {
+  None
+  Assigned
+  Completed
+  Paid
+  Cancelled
+}
+
+"How a micro-settlement was routed on Hedera."
+enum SettlementRail {
+  "Routed through the Hedera Token Service precompile (0x167)"
+  HTS
+  "Routed through a plain ERC-20 `transfer`"
+  ERC20
+}
+
+# ── Protocol-wide singleton ─────────────────────────────────────────────────
+
+"Global roll-up across every agency indexed by this deployment. Singleton, id = `aetheris`."
+type Protocol @entity(immutable: false) {
+  id: ID!
+
+  agencyCount: BigInt!
+  operatorCount: BigInt!
+  verifiedOperatorCount: BigInt!
+  subAgentCount: BigInt!
+  tokenCount: BigInt!
+
+  jobCount: BigInt!
+  jobsSettled: BigInt!
+  taskCount: BigInt!
+  tasksCompleted: BigInt!
+
+  "Count of MicroSettlement events, i.e. programmatic sub-agent payouts."
+  settlementCount: BigInt!
+  "Subset of `settlementCount` routed through the HTS precompile."
+  htsSettlementCount: BigInt!
+  rebalanceCount: BigInt!
+  hcsAnchorCount: BigInt!
+
+  grossRevenue: BigInt!
+  totalPaidToSubAgents: BigInt!
+  netMargin: BigInt!
+  totalProfitClaimed: BigInt!
+
+  lastUpdatedAt: BigInt!
+}
+
+# ── Identity & governance ───────────────────────────────────────────────────
+
+"""
+A World-ID-gated human operator. Created on `OperatorVerified` or, defensively,
+the first time an operator is referenced by `AgencyDeployed` / `ProfitClaimed`.
+"""
+type Operator @entity(immutable: false) {
+  "Operator EOA / smart account address."
+  id: Bytes!
+  address: Bytes!
+
+  "ENS name reported on-chain by the agency factory (may be unset)."
+  ensName: String
+
+  "True once World ID proof-of-personhood cleared (`OperatorVerified`)."
+  verified: Boolean!
+  "World ID nullifier hash — one human, one nullifier per action."
+  nullifierHash: BigInt
+  verifiedAt: BigInt
+  verifiedAtBlock: BigInt
+
+  agencyCount: BigInt!
+  agencies: [Agency!]! @derivedFrom(field: "operator")
+
+  "Total margin withdrawn across all tokens (raw base units, summed)."
+  profitClaimed: BigInt!
+  profitClaimCount: BigInt!
+  profitClaims: [ProfitClaim!]! @derivedFrom(field: "operator")
+
+  firstSeenAt: BigInt!
+  lastActiveAt: BigInt!
+}
+
+"""
+An autonomous agency treasury. Identified by the contract address that emitted
+the event, so job/task/settlement flow is always attributable even when the
+`AgencyDeployed` event predates the configured `startBlock`.
+"""
+type Agency @entity(immutable: false) {
+  "Agency treasury contract address."
+  id: Bytes!
+  address: Bytes!
+
+  operator: Operator
+  "ENS name of the agency (e.g. `audit.aetheris.eth`)."
+  ensName: String
+  "World ID nullifier of the deploying operator."
+  nullifierHash: BigInt
+
+  totalJobs: BigInt!
+  jobsSettled: BigInt!
+  totalTasks: BigInt!
+  tasksCompleted: BigInt!
+
+  "Sum of `JobSettled.grossDeposit`."
+  grossRevenue: BigInt!
+  "Sum of `JobSettled.paidToSubAgents`."
+  totalPaidToSubAgents: BigInt!
+  "Sum of `JobSettled.netMargin` — the agency's retained profit."
+  netMargin: BigInt!
+  "netMargin / grossRevenue, in [0,1]. Zero while grossRevenue is zero."
+  marginRate: BigDecimal!
+
+  "Value actually pushed to sub-agents by MicroSettlement events."
+  totalMicroSettled: BigInt!
+  microSettlementCount: BigInt!
+  htsSettlementCount: BigInt!
+  erc20SettlementCount: BigInt!
+  hcsAnchorCount: BigInt!
+
+  "Distinct sub-agents ever assigned work by this agency."
+  uniqueSubAgentCount: BigInt!
+
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTx: Bytes!
+  lastActiveAt: BigInt!
+
+  jobs: [Job!]! @derivedFrom(field: "agency")
+  tasks: [Task!]! @derivedFrom(field: "agency")
+  settlements: [Settlement!]! @derivedFrom(field: "agency")
+  hcsAnchors: [HcsAnchor!]! @derivedFrom(field: "agency")
+  dayData: [AgencyDayData!]! @derivedFrom(field: "agency")
+}
+
+"""
+A specialized worker agent hired by an agency. This entity IS the agent
+performance leaderboard: sort by `totalEarned`, `tasksCompleted` or
+`completionRate`.
+"""
+type SubAgent @entity(immutable: false) {
+  "Sub-agent payout address."
+  id: Bytes!
+  address: Bytes!
+
+  """
+  Reverse-resolved ENS name. Reserved for the ENS resolution layer — no Aetheris
+  event carries a sub-agent ENS name, so this is null unless backfilled.
+  """
+  ensName: String
+
+  tasksAssigned: BigInt!
+  tasksCompleted: BigInt!
+  tasksPaid: BigInt!
+  tasksCancelled: BigInt!
+
+  "Sum of `MicroSettlement.amount` received."
+  totalEarned: BigInt!
+  "Sum of `SubAgentAssigned.fee` — work committed, paid or not."
+  totalFeesAssigned: BigInt!
+  "tasksCompleted / tasksAssigned, in [0,1]."
+  completionRate: BigDecimal!
+  "totalFeesAssigned / tasksAssigned."
+  averageFee: BigDecimal!
+
+  "Distinct roles this agent has been hired for, in first-seen order."
+  roles: [String!]!
+  roleStats: [AgentRoleStat!]! @derivedFrom(field: "subAgent")
+
+  "Number of distinct agencies that have hired this agent."
+  agencyCount: BigInt!
+
+  firstSeenAt: BigInt!
+  lastActiveAt: BigInt!
+
+  tasks: [Task!]! @derivedFrom(field: "subAgent")
+  settlements: [Settlement!]! @derivedFrom(field: "subAgent")
+}
+
+"Per-role performance breakdown for a sub-agent. id = `{subAgent}-{role}`."
+type AgentRoleStat @entity(immutable: false) {
+  id: ID!
+  subAgent: SubAgent!
+  role: String!
+  tasksAssigned: BigInt!
+  tasksCompleted: BigInt!
+  totalEarned: BigInt!
+  lastActiveAt: BigInt!
+}
+
+"An HTS or ERC-20 token seen in a deposit, fee, settlement, claim or swap."
+type Token @entity(immutable: false) {
+  "Token EVM address (HTS tokens use their 0x…-encoded token id)."
+  id: Bytes!
+  address: Bytes!
+
+  "True once at least one settlement in this token was routed via the HTS precompile."
+  seenViaHts: Boolean!
+
+  jobCount: BigInt!
+  totalDeposited: BigInt!
+  totalSettled: BigInt!
+  totalClaimed: BigInt!
+  settlementCount: BigInt!
+
+  firstSeenAt: BigInt!
+}
+
+# ── Job lifecycle ───────────────────────────────────────────────────────────
+
+"A client-funded unit of work held in escrow by an agency. id = `{jobId}`."
+type Job @entity(immutable: false) {
+  id: ID!
+  jobId: BigInt!
+  agency: Agency!
+
+  client: Bytes!
+  token: Token!
+  "Escrowed client deposit, raw base units."
+  deposit: BigInt!
+  "IPFS / HTTPS URI of the job specification."
+  specURI: String!
+
+  status: JobStatus!
+
+  taskCount: BigInt!
+  tasksCompleted: BigInt!
+  tasksPaid: BigInt!
+  "Sum of assigned task fees. Compare against `deposit` for a live margin view."
+  totalTaskFees: BigInt!
+  "Value actually micro-settled out of this job so far."
+  totalSettled: BigInt!
+
+  settlement: JobSettlement
+  hcsAnchorCount: BigInt!
+
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  createdAtTx: Bytes!
+  dispatchedAt: BigInt
+  completedAt: BigInt
+  settledAt: BigInt
+
+  tasks: [Task!]! @derivedFrom(field: "job")
+  settlements: [Settlement!]! @derivedFrom(field: "job")
+  hcsAnchors: [HcsAnchor!]! @derivedFrom(field: "job")
+}
+
+"A single sub-agent assignment inside a job. id = `{jobId}-{taskId}`."
+type Task @entity(immutable: false) {
+  id: ID!
+  taskId: BigInt!
+  job: Job!
+  agency: Agency!
+
+  subAgent: SubAgent!
+  "Free-form specialization, e.g. `security-audit`, `code-gen`, `market-research`."
+  role: String!
+  token: Token!
+  "Agreed sub-agent fee, raw base units."
+  fee: BigInt!
+
+  status: TaskStatus!
+
+  "keccak hash of the sub-agent's deliverable, from `TaskCompleted`."
+  resultHash: Bytes
+  "Hedera Consensus Service topic id (e.g. `0.0.1234567`) carrying the proof."
+  hcsTopicId: String
+  "HCS message sequence number within `hcsTopicId`."
+  hcsSequenceNumber: BigInt
+
+  "The micro-payment that discharged this task, once paid."
+  settlement: Settlement
+
+  assignedAt: BigInt!
+  assignedAtBlock: BigInt!
+  assignedAtTx: Bytes!
+  completedAt: BigInt
+  paidAt: BigInt
+}
+
+"""
+Close-out record for a job: the agency's realised margin. One per `JobSettled`.
+id = `{jobId}`.
+"""
+type JobSettlement @entity(immutable: true) {
+  id: ID!
+  job: Job!
+  agency: Agency!
+
+  grossDeposit: BigInt!
+  paidToSubAgents: BigInt!
+  netMargin: BigInt!
+  "netMargin / grossDeposit, in [0,1]."
+  marginRate: BigDecimal!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+}
+
+"""
+A programmatic micro-payment to a sub-agent. `viaHts` makes the
+HTS-precompile-vs-ERC-20 routing decision directly queryable — the core Hedera
+claim of the project. id = `{txHash}-{logIndex}`.
+"""
+type Settlement @entity(immutable: true) {
+  id: Bytes!
+
+  job: Job!
+  task: Task!
+  agency: Agency!
+  subAgent: SubAgent!
+  token: Token!
+
+  amount: BigInt!
+  "True when routed through the Hedera Token Service precompile."
+  viaHts: Boolean!
+  rail: SettlementRail!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+}
+
+# ── Treasury operations ─────────────────────────────────────────────────────
+
+"A 1inch Swap API v6.0 treasury rebalance. id = `{txHash}-{logIndex}`."
+type Rebalance @entity(immutable: true) {
+  id: Bytes!
+
+  "Treasury contract that executed the swap."
+  treasury: Bytes!
+
+  fromToken: Token!
+  toToken: Token!
+  amountIn: BigInt!
+  amountOut: BigInt!
+
+  "Destination chain id for a Fusion+ cross-chain fill; equals the source chain for same-chain swaps."
+  dstChainId: BigInt!
+  "True when `dstChainId` is not Hedera testnet (296)."
+  crossChain: Boolean!
+
+  "Execution hash reported by the 1inch router."
+  oneInchTxHash: Bytes!
+  "amountOut / amountIn — an effective-rate proxy for the same-token-decimals case."
+  executionRate: BigDecimal!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+}
+
+"A World-ID-gated margin withdrawal by an operator. id = `{txHash}-{logIndex}`."
+type ProfitClaim @entity(immutable: true) {
+  id: Bytes!
+
+  operator: Operator!
+  treasury: Bytes!
+  token: Token!
+  amount: BigInt!
+  nullifierHash: BigInt!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+}
+
+# ── Hedera Consensus Service audit trail ────────────────────────────────────
+
+"""
+An immutable HCS audit message anchored on-chain. `topicId` +
+`sequenceNumber` address the message on the Hedera mirror node, so any indexed
+job can be replayed against consensus-ordered evidence.
+id = `{txHash}-{logIndex}`.
+"""
+type HcsAnchor @entity(immutable: true) {
+  id: Bytes!
+
+  job: Job!
+  agency: Agency!
+  jobId: BigInt!
+
+  "keccak hash of the HCS message payload."
+  messageHash: Bytes!
+  "Hedera topic id in `shard.realm.num` form."
+  topicId: String!
+  sequenceNumber: BigInt!
+
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+  logIndex: BigInt!
+}
+
+# ── Time-series aggregation ─────────────────────────────────────────────────
+
+"""
+Daily roll-up per agency, keyed on `timestamp / 86400`. Powers the revenue and
+throughput charts in the Aetheris dashboard without any client-side scanning.
+id = `{agency}-{dayId}`.
+"""
+type AgencyDayData @entity(immutable: false) {
+  id: ID!
+  agency: Agency!
+
+  "Days since the unix epoch (`timestamp / 86400`)."
+  dayId: Int!
+  "Unix timestamp of 00:00 UTC on this day."
+  date: Int!
+
+  jobsCreated: BigInt!
+  jobsSettled: BigInt!
+  tasksAssigned: BigInt!
+  tasksCompleted: BigInt!
+
+  microSettlements: BigInt!
+  htsMicroSettlements: BigInt!
+  erc20MicroSettlements: BigInt!
+  "Value micro-settled to sub-agents on this day."
+  microSettledVolume: BigInt!
+
+  "Gross deposits of jobs settled on this day."
+  revenue: BigInt!
+  paidToSubAgents: BigInt!
+  netMargin: BigInt!
+  marginRate: BigDecimal!
+
+  "Distinct sub-agents that received work or payment on this day."
+  uniqueSubAgents: Int!
+  hcsAnchors: BigInt!
+
+  "Running agency totals as at the end of this day — cheap cumulative charts."
+  cumulativeGrossRevenue: BigInt!
+  cumulativeNetMargin: BigInt!
+
+  lastUpdatedAt: BigInt!
+}
+
+"""
+Protocol-wide daily roll-up, keyed on `timestamp / 86400`. id = `{dayId}`.
+"""
+type ProtocolDayData @entity(immutable: false) {
+  id: ID!
+  dayId: Int!
+  date: Int!
+
+  jobsCreated: BigInt!
+  jobsSettled: BigInt!
+  tasksAssigned: BigInt!
+  tasksCompleted: BigInt!
+  microSettlements: BigInt!
+  htsMicroSettlements: BigInt!
+  microSettledVolume: BigInt!
+  revenue: BigInt!
+  netMargin: BigInt!
+  rebalances: BigInt!
+  rebalanceVolumeIn: BigInt!
+  profitClaimed: BigInt!
+  hcsAnchors: BigInt!
+  activeAgencies: Int!
+
+  lastUpdatedAt: BigInt!
+}
+
+"""
+Internal de-duplication marker so `AgencyDayData.uniqueSubAgents` and
+`Agency.uniqueSubAgentCount` can be maintained incrementally instead of
+recomputed. Never queried by the UI.
+id = `{agency}-{dayId}-{subAgent}` (daily) or `{agency}-{subAgent}` (lifetime).
+"""
+type ActiveSubAgentMarker @entity(immutable: true) {
+  id: ID!
+}
+
+"""
+Internal de-duplication marker for `ProtocolDayData.activeAgencies`.
+id = `{dayId}-{agency}`.
+"""
+type ActiveAgencyMarker @entity(immutable: true) {
+  id: ID!
+}
