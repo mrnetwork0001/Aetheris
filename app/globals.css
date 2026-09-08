@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Aetheris — "deep space" design tokens
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --aether-void: 5 6 15;
+    --aether-deep: 11 16 34;
+    --aether-glow: 109 124 255;
+    --aether-cyan: 56 232 255;
+    --aether-gold: 255 200 87;
+
+    --hairline: 255 255 255 / 0.07;
+    --panel: 255 255 255 / 0.025;
+
+    /* `next/font` injects --font-inter / --font-jetbrains on <html>. */
+    --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono-stack: var(--font-jetbrains), ui-monospace, SFMono-Regular, "SF Mono",
+      Menlo, Consolas, monospace;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  body {
+    @apply bg-aether-void text-slate-300 antialiased;
+    font-family: var(--font-sans-stack);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgb(var(--aether-glow) / 0.35);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--aether-cyan));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.12);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(255 255 255 / 0.22);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Component-level primitives
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .aether-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Gradient rule used to separate major bands */
+  .hairline {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.12) 20%,
+      rgb(255 255 255 / 0.12) 80%,
+      transparent
+    );
+    height: 1px;
+  }
+
+  /* Text treatments */
+  .text-aurora {
+    background-image: linear-gradient(
+      100deg,
+      #ffffff 0%,
+      #cfd6ff 28%,
+      rgb(var(--aether-cyan)) 55%,
+      #ffffff 82%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .text-gold-gradient {
+    background-image: linear-gradient(100deg, #ffe9b0, rgb(var(--aether-gold)) 60%, #ff9d4d);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Card with a luminous top edge */
+  .edge-lit::before {
+    content: "";
+    position: absolute;
+    inset-inline: 12%;
+    top: 0;
+    height: 1px;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--aether-cyan) / 0.55),
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  /* Faint blueprint grid */
+  .grid-blueprint {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 78%);
+  }
+
+  /* Monospace data cell. Declares the family directly rather than leaning on
+     Tailwind's `font-mono`, since the theme is not extended with our faces. */
+  .data-mono {
+    font-family: var(--font-mono-stack);
+    @apply text-[0.78rem] tabular-nums tracking-tight;
+  }
+
+  .mono {
+    font-family: var(--font-mono-stack);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Motion — declared here because tailwind.config.js ships no animation extension
+   ──────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  @keyframes aether-drift {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-120px, -160px, 0);
+    }
+  }
+
+  @keyframes aether-breathe {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes aether-pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgb(var(--aether-cyan) / 0.45);
+    }
+    70% {
+      box-shadow: 0 0 0 7px rgb(var(--aether-cyan) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(var(--aether-cyan) / 0);
+    }
+  }
+
+  @keyframes aether-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes aether-scan {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    45% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(1200%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes aether-dash {
+    to {
+      stroke-dashoffset: -64;
+    }
+  }
+
+  @keyframes aether-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-drift {
+    animation: aether-drift 140s linear infinite alternate;
+  }
+  .animate-breathe {
+    animation: aether-breathe 9s ease-in-out infinite;
+  }
+  .animate-pulse-ring {
+    animation: aether-pulse-ring 2.4s cubic-bezier(0.66, 0, 0, 1) infinite;
+  }
+  .animate-scan {
+    animation: aether-scan 7s linear infinite;
+  }
+  .animate-dash {
+    stroke-dasharray: 6 10;
+    animation: aether-dash 1.6s linear infinite;
+  }
+
+  .animate-orbit {
+    animation: aether-orbit 26s linear infinite;
+  }
+  .animate-orbit-slow {
+    animation: aether-orbit 44s linear infinite;
+  }
+
+  /* Shimmer overlay for skeletons */
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.07),
+      transparent
+    );
+    animation: aether-shimmer 1.8s infinite;
+  }
+
+  .mask-fade-b {
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  }
+}
