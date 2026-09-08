@@ -1,0 +1,6 @@
+# graph-cli output — regenerate with `graph codegen` / `graph build`
+generated/
+build/
+
+# local graph-node stack state (docker-compose.yml volumes)
+data/

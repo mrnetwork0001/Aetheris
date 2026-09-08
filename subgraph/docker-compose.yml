@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  Local graph-node stack for Aetheris on Hedera EVM Testnet.
+#
+#  Hedera is NOT in The Graph's hosted network registry
+#  (@pinax/graph-networks-registry ships 156 networks, none of them Hedera),
+#  so a self-hosted graph-node pointed at the Hedera JSON-RPC relay is the
+#  supported path — this is exactly what Hedera's own subgraph guide does:
+#  https://docs.hedera.com/evm/tools/other/the-graph
+#
+#      docker compose -f subgraph/docker-compose.yml up -d
+#      npx graph create --node http://localhost:8020/ aetheris
+#      npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 \
+#        aetheris subgraph/subgraph.yaml --output-dir subgraph/build
+#
+#  GraphQL endpoint: http://localhost:8000/subgraphs/name/aetheris
+#
+#  IMPORTANT — two things must agree:
+#    1. the label before the colon in `ethereum:` below, and
+#    2. `network:` in subgraph.yaml
+#  Both say `hedera-testnet` here. Hedera's stock example uses `testnet`
+#  instead; either works as long as the two match.
+# ═══════════════════════════════════════════════════════════════════════════
+services:
+  graph-node:
+    # specVersion 1.2.0 + apiVersion 0.0.9 need a recent graph-node.
+    # Pin an explicit >= v0.36.0 tag for reproducibility once you pick one.
+    image: graphprotocol/graph-node:latest
+    ports:
+      - "8000:8000" # GraphQL HTTP
+      - "8001:8001" # GraphQL WS
+      - "8020:8020" # JSON-RPC admin (graph create / graph deploy)
+      - "8030:8030" # subgraph indexing status
+      - "8040:8040" # Prometheus metrics
+    depends_on:
+      - ipfs
+      - postgres
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      postgres_host: postgres
+      postgres_user: graph-node
+      postgres_pass: let-me-in
+      postgres_db: graph-node
+      ipfs: "ipfs:5001"
+      # Hashio is Hedera's public JSON-RPC relay for testnet (chain id 296).
+      # Swap in your own relay / Hedera mirror-node RPC if you are rate limited.
+      ethereum: "hedera-testnet:https://testnet.hashio.io/api"
+      # Hedera has no block 0 over the JSON-RPC relay — graph-node must start
+      # its genesis probe at block 1 or the chain head check fails on boot.
+      GRAPH_ETHEREUM_GENESIS_BLOCK_NUMBER: 1
+      GRAPH_LOG: info
+
+  ipfs:
+    image: ipfs/kubo:v0.29.0
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./data/ipfs:/data/ipfs
+
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_USER: graph-node
+      POSTGRES_PASSWORD: let-me-in
+      POSTGRES_DB: graph-node
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data

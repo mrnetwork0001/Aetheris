@@ -1,0 +1,290 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  Aetheris — worked example queries
+#
+#  Paste any of these into The Graph Studio playground (or
+#  http://localhost:8000/subgraphs/name/aetheris/graphql for the local node).
+#  These are the exact shapes the Aetheris dashboard consumes.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── 1. Protocol dashboard header ───────────────────────────────────────────
+query ProtocolOverview {
+  protocol(id: "aetheris") {
+    agencyCount
+    verifiedOperatorCount
+    subAgentCount
+    jobCount
+    jobsSettled
+    taskCount
+    tasksCompleted
+    settlementCount
+    htsSettlementCount
+    hcsAnchorCount
+    rebalanceCount
+    grossRevenue
+    totalPaidToSubAgents
+    netMargin
+    totalProfitClaimed
+  }
+}
+
+# ── 2. Agency league table, richest margin first ───────────────────────────
+query AgencyLeaderboard {
+  agencies(first: 25, orderBy: netMargin, orderDirection: desc) {
+    id
+    ensName
+    operator {
+      id
+      ensName
+      verified
+    }
+    totalJobs
+    jobsSettled
+    grossRevenue
+    totalPaidToSubAgents
+    netMargin
+    marginRate
+    uniqueSubAgentCount
+    htsSettlementCount
+    erc20SettlementCount
+  }
+}
+
+# ── 3. Sub-agent performance leaderboard ───────────────────────────────────
+# The headline "which agents actually earn" view.
+query SubAgentLeaderboard {
+  subAgents(first: 25, orderBy: totalEarned, orderDirection: desc) {
+    id
+    ensName
+    roles
+    tasksAssigned
+    tasksCompleted
+    tasksPaid
+    completionRate
+    averageFee
+    totalEarned
+    agencyCount
+    lastActiveAt
+    roleStats(orderBy: totalEarned, orderDirection: desc) {
+      role
+      tasksAssigned
+      tasksCompleted
+      totalEarned
+    }
+  }
+}
+
+# ── 4. Full job trace: escrow → dispatch → HCS proof → payout → margin ─────
+query JobTrace($jobId: ID!) {
+  job(id: $jobId) {
+    id
+    jobId
+    status
+    client
+    deposit
+    specURI
+    token {
+      id
+      seenViaHts
+    }
+    createdAt
+    dispatchedAt
+    completedAt
+    settledAt
+    taskCount
+    tasksCompleted
+    totalTaskFees
+    totalSettled
+    tasks(orderBy: taskId) {
+      id
+      taskId
+      role
+      fee
+      status
+      resultHash
+      hcsTopicId
+      hcsSequenceNumber
+      completedAt
+      paidAt
+      subAgent {
+        id
+        ensName
+        completionRate
+      }
+      settlement {
+        amount
+        viaHts
+        rail
+        transactionHash
+      }
+    }
+    hcsAnchors(orderBy: sequenceNumber) {
+      messageHash
+      topicId
+      sequenceNumber
+      timestamp
+    }
+    settlement {
+      grossDeposit
+      paidToSubAgents
+      netMargin
+      marginRate
+      transactionHash
+    }
+  }
+}
+
+# ── 5. Hedera claim, made queryable: HTS vs ERC-20 payout routing ──────────
+query HtsRoutingSplit {
+  hts: settlements(where: { viaHts: true }, first: 5, orderBy: timestamp, orderDirection: desc) {
+    id
+    amount
+    rail
+    subAgent { id }
+    transactionHash
+  }
+  erc20: settlements(where: { viaHts: false }, first: 5, orderBy: timestamp, orderDirection: desc) {
+    id
+    amount
+    rail
+    subAgent { id }
+    transactionHash
+  }
+  tokens {
+    id
+    seenViaHts
+    settlementCount
+    totalSettled
+  }
+}
+
+# ── 6. Daily revenue time series for one agency (charting) ─────────────────
+query AgencyDailySeries($agency: String!) {
+  agencyDayDatas(
+    where: { agency: $agency }
+    orderBy: dayId
+    orderDirection: asc
+    first: 365
+  ) {
+    dayId
+    date
+    jobsCreated
+    jobsSettled
+    tasksAssigned
+    tasksCompleted
+    microSettlements
+    htsMicroSettlements
+    erc20MicroSettlements
+    microSettledVolume
+    revenue
+    paidToSubAgents
+    netMargin
+    marginRate
+    uniqueSubAgents
+    hcsAnchors
+    cumulativeGrossRevenue
+    cumulativeNetMargin
+  }
+}
+
+# ── 7. Protocol-wide daily series ──────────────────────────────────────────
+query ProtocolDailySeries {
+  protocolDayDatas(orderBy: dayId, orderDirection: desc, first: 30) {
+    date
+    activeAgencies
+    jobsCreated
+    jobsSettled
+    microSettlements
+    htsMicroSettlements
+    microSettledVolume
+    revenue
+    netMargin
+    rebalances
+    rebalanceVolumeIn
+    profitClaimed
+    hcsAnchors
+  }
+}
+
+# ── 8. 1inch treasury rebalances, cross-chain fills flagged ────────────────
+query TreasuryRebalances {
+  rebalances(orderBy: timestamp, orderDirection: desc, first: 20) {
+    id
+    treasury
+    fromToken { id }
+    toToken { id }
+    amountIn
+    amountOut
+    executionRate
+    dstChainId
+    crossChain
+    oneInchTxHash
+    timestamp
+    transactionHash
+  }
+}
+
+# ── 9. World ID governance: verified operators and their withdrawals ───────
+query VerifiedOperators {
+  operators(where: { verified: true }, orderBy: profitClaimed, orderDirection: desc) {
+    id
+    ensName
+    verified
+    nullifierHash
+    verifiedAt
+    agencyCount
+    profitClaimed
+    profitClaimCount
+    agencies {
+      id
+      ensName
+      netMargin
+    }
+    profitClaims(orderBy: timestamp, orderDirection: desc, first: 5) {
+      token { id }
+      amount
+      nullifierHash
+      transactionHash
+    }
+  }
+}
+
+# ── 10. HCS audit trail, newest consensus messages first ───────────────────
+query HcsAuditTrail {
+  hcsAnchors(orderBy: timestamp, orderDirection: desc, first: 50) {
+    id
+    jobId
+    topicId
+    sequenceNumber
+    messageHash
+    timestamp
+    blockNumber
+    transactionHash
+    job {
+      status
+      client
+    }
+  }
+}
+
+# ── 11. Work in flight: jobs dispatched but not yet settled ────────────────
+query OpenJobs {
+  jobs(
+    where: { status_in: [Funded, Dispatched, Completed] }
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    status
+    deposit
+    totalTaskFees
+    totalSettled
+    taskCount
+    tasksCompleted
+    tasksPaid
+    createdAt
+    agency {
+      id
+      ensName
+    }
+  }
+}
