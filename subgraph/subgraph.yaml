@@ -1,0 +1,135 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  AETHERIS subgraph manifest — Hedera EVM Testnet (chain id 296)
+#
+#  ┌───────────────────────────────────────────────────────────────────────┐
+#  │  BEFORE DEPLOYING: replace the two `address:` placeholders and both    │
+#  │  `startBlock:` values below.                                          │
+#  │                                                                       │
+#  │      npm run deploy:hedera                                            │
+#  │                                                                       │
+#  │  `scripts/deploy.js` prints the deployed AetherisAgency and           │
+#  │  AetherisTreasury addresses plus the deployment block number — paste   │
+#  │  them in here (and keep `networks.json` in sync).                      │
+#  │                                                                       │
+#  │  `startBlock: 0` works but forces a full-history scan of Hedera        │
+#  │  testnet and is painfully slow — always set the real deployment block. │
+#  │                                                                       │
+#  │  The split follows what the contracts actually emit:                   │
+#  │    AetherisAgency   → AgencyDeployed, OperatorVerified, JobCreated,     │
+#  │                       SubAgentAssigned, TaskCompleted, JobSettled,      │
+#  │                       HcsLogAnchored                                    │
+#  │    AetherisTreasury → MicroSettlement, TreasuryRebalanced,              │
+#  │                       ProfitClaimed                                     │
+#  │                                                                       │
+#  │  Do NOT run `graph build --network …` on this file: that flag rewrites │
+#  │  the manifest in place and strips every comment you are reading.       │
+#  └───────────────────────────────────────────────────────────────────────┘
+# ═══════════════════════════════════════════════════════════════════════════
+specVersion: 1.2.0
+description: >-
+  Aetheris — Autonomous DeAI Agency & Micro-Treasury OS. Indexes agency
+  identity, job lifecycle, sub-agent micro-settlements (HTS vs ERC-20),
+  Hedera Consensus Service audit anchors and 1inch treasury rebalances into a
+  real-time GraphQL analytics layer.
+repository: https://github.com/mrnetwork0001/Aetheris
+schema:
+  file: ./schema.graphql
+
+indexerHints:
+  prune: auto
+
+dataSources:
+  # ── Agency core: identity, job lifecycle, task completion, HCS anchors ───
+  - kind: ethereum/contract
+    name: AetherisAgency
+    network: hedera-testnet
+    source:
+      abi: AetherisAgency
+      # PLACEHOLDER — replace with the address printed by scripts/deploy.js
+      address: "0x0000000000000000000000000000000000000000"
+      # PLACEHOLDER — replace with the agency deployment block
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/agency.ts
+      entities:
+        - Protocol
+        - ProtocolDayData
+        - Operator
+        - Agency
+        - AgencyDayData
+        - SubAgent
+        - AgentRoleStat
+        - Token
+        - Job
+        - Task
+        - JobSettlement
+        - HcsAnchor
+        - ActiveSubAgentMarker
+        - ActiveAgencyMarker
+      abis:
+        - name: AetherisAgency
+          file: ./abis/AetherisAgency.json
+      eventHandlers:
+        - event: AgencyDeployed(indexed address,indexed address,string,uint256)
+          handler: handleAgencyDeployed
+        - event: OperatorVerified(indexed address,uint256,string)
+          handler: handleOperatorVerified
+        - event: JobCreated(indexed uint256,indexed address,indexed address,uint256,string)
+          handler: handleJobCreated
+        - event: SubAgentAssigned(indexed uint256,indexed uint256,indexed address,address,uint256,string)
+          handler: handleSubAgentAssigned
+        - event: TaskCompleted(indexed uint256,indexed uint256,bytes32,string,uint64)
+          handler: handleTaskCompleted
+        - event: JobSettled(indexed uint256,uint256,uint256,uint256)
+          handler: handleJobSettled
+        - event: HcsLogAnchored(indexed uint256,bytes32,string,uint64)
+          handler: handleHcsLogAnchored
+
+  # ── Treasury: HTS micro-settlements, 1inch rebalances, profit claims ─────
+  - kind: ethereum/contract
+    name: AetherisTreasury
+    network: hedera-testnet
+    source:
+      abi: AetherisTreasury
+      # PLACEHOLDER — replace with the address printed by scripts/deploy.js
+      address: "0x0000000000000000000000000000000000000000"
+      # PLACEHOLDER — replace with the treasury deployment block
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/treasury.ts
+      entities:
+        - Protocol
+        - ProtocolDayData
+        - Operator
+        - Agency
+        - AgencyDayData
+        - SubAgent
+        - AgentRoleStat
+        - Token
+        - Job
+        - Task
+        - Settlement
+        - Rebalance
+        - ProfitClaim
+        - ActiveSubAgentMarker
+        - ActiveAgencyMarker
+      abis:
+        - name: AetherisTreasury
+          file: ./abis/AetherisTreasury.json
+      eventHandlers:
+        # NOTE: MicroSettlement is emitted by AetherisTreasury.settleSubAgent(),
+        # NOT by the agency — see AetherisTreasury.sol. The handler resolves the
+        # owning agency from the job (falling back to the treasury's `agency()`
+        # view) so agency aggregates stay correct.
+        - event: MicroSettlement(indexed uint256,indexed uint256,indexed address,address,uint256,bool)
+          handler: handleMicroSettlement
+        - event: TreasuryRebalanced(indexed address,indexed address,uint256,uint256,uint256,bytes32)
+          handler: handleTreasuryRebalanced
+        - event: ProfitClaimed(indexed address,indexed address,uint256,uint256)
+          handler: handleProfitClaimed

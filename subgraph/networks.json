@@ -1,0 +1,12 @@
+{
+  "hedera-testnet": {
+    "AetherisAgency": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    },
+    "AetherisTreasury": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 0
+    }
+  }
+}
