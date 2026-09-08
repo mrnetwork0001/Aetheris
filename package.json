@@ -2,32 +2,51 @@
   "name": "aetheris",
   "version": "1.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "test:contracts": "hardhat test",
+    "deploy:hedera": "hardhat run scripts/deploy.js --network hederaTestnet",
+    "codegen": "graph codegen subgraph/subgraph.yaml --output-dir subgraph/generated",
+    "build:subgraph": "graph build subgraph/subgraph.yaml --output-dir subgraph/build"
   },
   "dependencies": {
-    "next": "14.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "ethers": "^6.11.0",
-    "@hashgraph/sdk": "^2.40.0",
-    "@worldcoin/idkit": "^1.2.2",
+    "@hashgraph/sdk": "^2.81.0",
+    "@privy-io/react-auth": "^3.40.0",
+    "@tanstack/react-query": "^5.102.8",
+    "@worldcoin/idkit": "^4.2.3",
+    "@worldcoin/idkit-core": "^4.2.4",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.17.0",
     "framer-motion": "^11.0.3",
-    "lucide-react": "^0.330.0"
+    "graphql": "^16.9.0",
+    "graphql-request": "^7.4.0",
+    "lucide-react": "^0.554.0",
+    "next": "^14.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4",
+    "viem": "^2.56.3"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.29.1",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@graphprotocol/graph-cli": "^0.98.1",
+    "@graphprotocol/graph-ts": "^0.38.2",
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.52",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.17",
-    "hardhat": "^2.19.5",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0"
   }
 }
