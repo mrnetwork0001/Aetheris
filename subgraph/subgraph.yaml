@@ -2,8 +2,8 @@
 #  AETHERIS subgraph manifest — Hedera EVM Testnet (chain id 296)
 #
 #  ┌───────────────────────────────────────────────────────────────────────┐
-#  │  BEFORE DEPLOYING: replace the two `address:` placeholders and both    │
-#  │  `startBlock:` values below.                                          │
+#  │  Deployed on Hedera testnet (chain 296) — addresses and start blocks  │
+#  │  below are live.                                                      │
 #  │                                                                       │
 #  │      npm run deploy:hedera                                            │
 #  │                                                                       │
@@ -11,7 +11,7 @@
 #  │  AetherisTreasury addresses plus the deployment block number — paste   │
 #  │  them in here (and keep `networks.json` in sync).                      │
 #  │                                                                       │
-#  │  `startBlock: 0` works but forces a full-history scan of Hedera        │
+#  │  `startBlock: 40396781` works but forces a full-history scan of Hedera        │
 #  │  testnet and is painfully slow — always set the real deployment block. │
 #  │                                                                       │
 #  │  The split follows what the contracts actually emit:                   │
@@ -45,10 +45,8 @@ dataSources:
     network: hedera-testnet
     source:
       abi: AetherisAgency
-      # PLACEHOLDER — replace with the address printed by scripts/deploy.js
-      address: "0x0000000000000000000000000000000000000000"
-      # PLACEHOLDER — replace with the agency deployment block
-      startBlock: 0
+      address: "0x16fA9CC838Ab5380F0Ebe3C261a2F57E0FBAbc81"
+      startBlock: 40396781
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -94,10 +92,8 @@ dataSources:
     network: hedera-testnet
     source:
       abi: AetherisTreasury
-      # PLACEHOLDER — replace with the address printed by scripts/deploy.js
-      address: "0x0000000000000000000000000000000000000000"
-      # PLACEHOLDER — replace with the treasury deployment block
-      startBlock: 0
+      address: "0x10360383a6b43Fd22BE257bE334E9A9ad83B5598"
+      startBlock: 40396776
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
