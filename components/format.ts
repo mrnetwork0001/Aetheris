@@ -16,15 +16,35 @@ export function toNumber(raw: bigint | string, decimals = 6): number {
 }
 
 export function formatUsd(value: number, maximumFractionDigits = 2): string {
+  // Callers pass 0 fraction digits for tidy headline figures, but Aetheris
+  // settles in micro-payments: a real 0.62 USDC payout would render as "$0"
+  // and read as "this sub-agent earned nothing". Below $100 keep the cents
+  // regardless of what the caller asked for.
+  const magnitude = Math.abs(value);
+  const digits = maximumFractionDigits === 0 && magnitude > 0 && magnitude < 100
+    ? 2
+    : maximumFractionDigits;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits,
-    minimumFractionDigits: maximumFractionDigits === 0 ? 0 : 2,
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits === 0 ? 0 : 2,
   }).format(value);
 }
 
 export function formatCompactUsd(value: number): string {
+  // Compact notation rounds sub-dollar amounts to "$0", which misreports a real
+  // balance as nothing. Micro-settlements are the whole point of Aetheris, so
+  // small figures keep their cents and only larger ones get compacted.
+  const magnitude = Math.abs(value);
+  if (magnitude > 0 && magnitude < 1000) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: magnitude < 1 ? 4 : 2,
+    }).format(value);
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
