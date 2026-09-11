@@ -140,12 +140,29 @@ async function queryWithFallback<T>(
 /** Rich `jobs` projection. */
 export const JOBS_QUERY = /* GraphQL */ `
   query AetherisJobs($first: Int!) {
-    jobs(first: $first) {
+    jobs(first: $first, orderBy: jobId, orderDirection: desc) {
       id
+      jobId
       client
-      amount
+      token
+      deposit
+      specURI
       status
+      taskCount
+      tasksCompleted
+      tasksPaid
+      totalSettled
       createdAt
+      settledAt
+      tasks(orderBy: taskId) {
+        id
+        taskId
+        role
+        status
+        fee
+        hcsSequenceNumber
+        subAgent { id address ensName }
+      }
     }
   }
 `;
@@ -164,25 +181,43 @@ export const AGENCY_STATS_QUERY = /* GraphQL */ `
   query AetherisAgencyStats($id: ID!, $first: Int!) {
     agency(id: $id) {
       id
-      owner
+      address
+      operator
+      ensName
       totalJobs
-      totalRevenue
+      jobsSettled
+      grossRevenue
+      totalPaidToSubAgents
+      netMargin
+      marginRate
+      htsSettlementCount
+      erc20SettlementCount
+      hcsAnchorCount
+      uniqueSubAgentCount
     }
     agencyDayDatas(first: $first, where: { agency: $id }) {
       id
       date
-      dailyRevenue
-      dailyJobs
+      revenue
+      netMargin
+      jobsCreated
+      jobsSettled
+      microSettlements
+      htsMicroSettlements
+      erc20MicroSettlements
     }
-    settlements(first: $first, where: { agency: $id }) {
+    settlements(first: $first, where: { agency: $id }, orderBy: timestamp, orderDirection: desc) {
       id
       amount
+      viaHts
+      rail
       timestamp
     }
-    hcsAnchors(first: $first, where: { agency: $id }) {
+    hcsAnchors(first: $first, where: { agency: $id }, orderBy: sequenceNumber, orderDirection: desc) {
       id
+      topicId
       sequenceNumber
-      consensusTimestamp
+      timestamp
     }
   }
 `;
@@ -199,11 +234,17 @@ export const AGENCY_STATS_QUERY_MINIMAL = /* GraphQL */ `
 /** Rich `subAgents` leaderboard projection. */
 export const SUB_AGENT_LEADERBOARD_QUERY = /* GraphQL */ `
   query AetherisSubAgentLeaderboard($first: Int!) {
-    subAgents(first: $first) {
+    subAgents(first: $first, orderBy: totalEarned, orderDirection: desc) {
       id
-      name
+      address
+      ensName
       totalEarned
+      tasksAssigned
       tasksCompleted
+      tasksPaid
+      completionRate
+      averageFee
+      roles
     }
   }
 `;
@@ -220,11 +261,18 @@ export const SUB_AGENT_LEADERBOARD_QUERY_MINIMAL = /* GraphQL */ `
 /** Rich `tasks` projection. */
 export const TASKS_QUERY = /* GraphQL */ `
   query AetherisTasks($first: Int!) {
-    tasks(first: $first) {
+    tasks(first: $first, orderBy: assignedAt, orderDirection: desc) {
       id
+      taskId
+      role
       status
-      reward
-      createdAt
+      fee
+      subAgent { id ensName }
+      hcsTopicId
+      hcsSequenceNumber
+      assignedAt
+      completedAt
+      paidAt
     }
   }
 `;
@@ -241,12 +289,15 @@ export const TASKS_QUERY_MINIMAL = /* GraphQL */ `
 /** Rich `rebalances` projection (1inch treasury swaps indexed on-chain). */
 export const REBALANCES_QUERY = /* GraphQL */ `
   query AetherisRebalances($first: Int!) {
-    rebalances(first: $first) {
+    rebalances(first: $first, orderBy: timestamp, orderDirection: desc) {
       id
-      srcToken
-      dstToken
-      srcAmount
-      dstAmount
+      fromToken
+      toToken
+      amountIn
+      amountOut
+      dstChainId
+      crossChain
+      executionRate
       timestamp
     }
   }
@@ -264,11 +315,13 @@ export const REBALANCES_QUERY_MINIMAL = /* GraphQL */ `
 /** Rich `hcsAnchors` projection (Hedera Consensus Service audit anchors). */
 export const HCS_ANCHORS_QUERY = /* GraphQL */ `
   query AetherisHcsAnchors($first: Int!) {
-    hcsAnchors(first: $first) {
+    hcsAnchors(first: $first, orderBy: sequenceNumber, orderDirection: desc) {
       id
+      jobId
+      messageHash
       topicId
       sequenceNumber
-      consensusTimestamp
+      timestamp
     }
   }
 `;
@@ -285,11 +338,18 @@ export const HCS_ANCHORS_QUERY_MINIMAL = /* GraphQL */ `
 /** Rich `agencies` projection. */
 export const AGENCIES_QUERY = /* GraphQL */ `
   query AetherisAgencies($first: Int!) {
-    agencies(first: $first) {
+    agencies(first: $first, orderBy: grossRevenue, orderDirection: desc) {
       id
-      owner
+      address
+      operator
+      ensName
       totalJobs
-      totalRevenue
+      jobsSettled
+      grossRevenue
+      totalPaidToSubAgents
+      netMargin
+      htsSettlementCount
+      erc20SettlementCount
     }
   }
 `;
