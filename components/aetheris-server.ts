@@ -139,37 +139,48 @@ function normalizeSubAgent(value: unknown, index: number): SubAgentRow {
   const r = isRecord(value) ? value : {};
   const address = asString(r.address ?? r.id, `0x${index.toString(16).padStart(40, "0")}`);
   const ensName = typeof r.ensName === "string" && r.ensName !== "" ? r.ensName : null;
-  const rate = asNumber(r.successRate, 1);
+  const rate = asNumber(r.completionRate ?? r.successRate, 1);
   return {
     address,
     ensName,
-    role: asString(r.role, "Sub-agent"),
+    role: asString(r.role ?? asArray(r.roles)[0], "Sub-agent"),
     tasksCompleted: asNumber(r.tasksCompleted ?? r.completedTasks, 0),
     totalEarnedRaw: asString(r.totalEarned ?? r.totalEarnedRaw, "0"),
     // Accept either a 0–1 fraction or a 0–100 percentage.
     successRate: rate > 1 ? Math.min(rate / 100, 1) : Math.max(0, Math.min(rate, 1)),
     avgSettlementMs: asNumber(r.avgSettlementMs, 0),
+    // `averageFee` is indexed but not part of SubAgentRow; ignored here.
   };
 }
 
 function normalizeStats(value: unknown, fallback: AgencyStats): AgencyStats {
   if (!isRecord(value)) return fallback;
-  const ensName = typeof value.ensName === "string" && value.ensName !== "" ? value.ensName : null;
+  // AGENCY_STATS_QUERY returns { agency, agencyDayDatas, settlements, hcsAnchors },
+  // so the scalar stats sit under `agency`. Accept a flat object too, so a
+  // hand-rolled caller passing the entity directly still works.
+  const a = isRecord(value.agency) ? value.agency : value;
+
+  const ensName = typeof a.ensName === "string" && a.ensName !== "" ? a.ensName : null;
+  const totalJobs = asNumber(a.totalJobs, fallback.totalJobs);
+  const settledJobs = asNumber(a.jobsSettled ?? a.settledJobs, fallback.settledJobs);
+
   return {
-    agency: asString(value.agency ?? value.id, fallback.agency),
+    agency: asString(a.address ?? a.id, fallback.agency),
     ensName,
-    operator: asString(value.operator, fallback.operator),
-    totalJobs: asNumber(value.totalJobs, fallback.totalJobs),
-    activeJobs: asNumber(value.activeJobs, fallback.activeJobs),
-    settledJobs: asNumber(value.settledJobs, fallback.settledJobs),
-    treasuryRaw: asString(value.treasuryBalance ?? value.treasuryRaw, fallback.treasuryRaw),
+    operator: asString(a.operator, fallback.operator),
+    totalJobs,
+    // Not indexed directly — everything not yet settled is still in flight.
+    activeJobs: Math.max(totalJobs - settledJobs, 0),
+    settledJobs,
+    // Retained margin is precisely what the treasury still holds.
+    treasuryRaw: asString(a.netMargin ?? a.treasuryBalance ?? a.treasuryRaw, fallback.treasuryRaw),
     lifetimeMarginRaw: asString(
-      value.lifetimeMargin ?? value.lifetimeMarginRaw,
+      a.netMargin ?? a.lifetimeMargin ?? a.lifetimeMarginRaw,
       fallback.lifetimeMarginRaw,
     ),
-    subAgentCount: asNumber(value.subAgentCount, fallback.subAgentCount),
-    hcsMessageCount: asNumber(value.hcsMessageCount, fallback.hcsMessageCount),
-    avgFinalityMs: asNumber(value.avgFinalityMs, fallback.avgFinalityMs),
+    subAgentCount: asNumber(a.uniqueSubAgentCount ?? a.subAgentCount, fallback.subAgentCount),
+    hcsMessageCount: asNumber(a.hcsAnchorCount ?? a.hcsMessageCount, fallback.hcsMessageCount),
+    avgFinalityMs: asNumber(a.avgFinalityMs, fallback.avgFinalityMs),
   };
 }
 
@@ -243,7 +254,13 @@ export async function loadAgencyStats(agency?: string): Promise<DataEnvelope<Age
  * this is explicitly demo data and the panel badges it as such.
  */
 export async function loadTreasury(): Promise<DataEnvelope<TreasuryHolding[]>> {
-  return { data: DEMO_TREASURY, source: "demo", error: "Treasury contract not deployed yet." };
+  return {
+    data: DEMO_TREASURY,
+    source: "demo",
+    // The treasury IS deployed, but per-token balances are not indexed by
+    // the subgraph, so this panel has no live source yet.
+    error: "Treasury balances are not indexed by the subgraph yet.",
+  };
 }
 
 export async function loadSettlements(): Promise<DataEnvelope<SettlementRow[]>> {
