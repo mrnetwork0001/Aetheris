@@ -9,10 +9,10 @@
 #
 #      docker compose -f subgraph/docker-compose.yml up -d
 #      npx graph create --node http://localhost:8020/ aetheris
-#      npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 \
+#      npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5101 \
 #        aetheris subgraph/subgraph.yaml --output-dir subgraph/build
 #
-#  GraphQL endpoint: http://localhost:8000/subgraphs/name/aetheris
+#  GraphQL endpoint: http://localhost:8100/subgraphs/name/aetheris
 #
 #  IMPORTANT — two things must agree:
 #    1. the label before the colon in `ethereum:` below, and
@@ -26,7 +26,10 @@ services:
     # Pin an explicit >= v0.36.0 tag for reproducibility once you pick one.
     image: graphprotocol/graph-node:latest
     ports:
-      - "8000:8000" # GraphQL HTTP
+      # Published on 8100: 8000 is frequently taken on a dev machine
+      # (local API servers, ssh -L tunnels). Query URL is therefore
+      # http://localhost:8100/subgraphs/name/aetheris
+      - "8100:8000" # GraphQL HTTP
       - "8001:8001" # GraphQL WS
       - "8020:8020" # JSON-RPC admin (graph create / graph deploy)
       - "8030:8030" # subgraph indexing status
@@ -53,7 +56,11 @@ services:
   ipfs:
     image: ipfs/kubo:v0.29.0
     ports:
-      - "5001:5001"
+      # Published on 5101: macOS commonly has something on 5001 already
+      # (AirPlay, or any local uvicorn/flask dev server). graph-node talks to
+      # ipfs:5001 over the compose network, so only host-side `graph deploy`
+      # needs this port.
+      - "5101:5001"
     volumes:
       - ./data/ipfs:/data/ipfs
 
