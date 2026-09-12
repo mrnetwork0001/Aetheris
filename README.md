@@ -20,6 +20,30 @@
 
 ---
 
+## 🔗 Deployed on Hedera Testnet (chain 296)
+
+| Contract | Address | Explorer |
+| :--- | :--- | :--- |
+| `AetherisAgency` | `0x16fA9CC838Ab5380F0Ebe3C261a2F57E0FBAbc81` | [HashScan](https://hashscan.io/testnet/contract/0x16fA9CC838Ab5380F0Ebe3C261a2F57E0FBAbc81) |
+| `AetherisTreasury` | `0x10360383a6b43Fd22BE257bE334E9A9ad83B5598` | [HashScan](https://hashscan.io/testnet/contract/0x10360383a6b43Fd22BE257bE334E9A9ad83B5598) |
+
+Seeded with a full job lifecycle. Both settlement rails are exercised on-chain:
+
+| Rail | Settlements | Evidence |
+| :--- | :--- | :--- |
+| **Hedera Token Service** | 3 | `MicroSettlement.viaHts = true`, HTS token `0.0.10484673`, sub-agents `0.0.10484674 / 10484676 / 10484678` |
+| ERC-20 fallback | 2 | `MicroSettlement.viaHts = false` |
+
+The gas profile is the clearest proof the precompile is doing real work:
+settling through HTS costs **2,360,527 gas** against **229,111** for the
+ERC-20 path.
+
+Four jobs are indexed across every lifecycle state (Settled, Settled,
+Dispatched, Funded). Gross revenue 3.55, paid to sub-agents 2.16, retained
+margin 1.39 — reconciled independently by the subgraph from indexed events.
+
+---
+
 ## 🚀 Quickstart & Setup Instructions
 
 ### 1. Prerequisites
