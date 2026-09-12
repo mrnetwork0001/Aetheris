@@ -44,6 +44,43 @@ margin 1.39 — reconciled independently by the subgraph from indexed events.
 
 ---
 
+## 📊 The Graph — why this subgraph is self-hosted
+
+**The Graph's hosted service does not support Hedera.** Hedera is absent from
+the network registry that ships with `graph-cli` and from the live
+`@pinax/graph-networks-registry` (156 networks, zero Hedera entries), and
+Subgraph Studio's network selector offers neither Hedera mainnet nor testnet.
+
+Aetheris therefore runs a **self-hosted `graph-node` against the Hedera
+JSON-RPC relay** — the path [Hedera's own subgraph guide](https://docs.hedera.com/evm/tools/other/the-graph)
+documents. `subgraph/docker-compose.yml` brings up the full stack.
+
+The subgraph itself is not a thin event log: **17 entities, 10 handlers**,
+real enums mirroring the Solidity ones, derived reverse relations, and
+`AgencyDayData` daily time-series rollups. `Settlement.viaHts` makes the
+HTS-versus-ERC-20 routing directly queryable:
+
+```graphql
+{ settlements(where: { viaHts: true }) { amount subAgent { id } } }
+```
+
+```bash
+docker compose -f subgraph/docker-compose.yml up -d
+npx graph create --node http://localhost:8020/ aetheris
+npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5101 \
+  aetheris subgraph/subgraph.yaml --output-dir subgraph/build
+```
+
+GraphQL endpoint: `http://localhost:8100/subgraphs/name/aetheris`
+
+> IPFS is published on host port **5101** and GraphQL on **8100** rather than
+> the defaults (5001, 8000), which are frequently occupied on a development
+> machine. The resulting failures are silent and misleading — `graph-cli`
+> reports `Failed to upload to IPFS: Not Found` and queries return another
+> server's 404 body.
+
+---
+
 ## 🚀 Quickstart & Setup Instructions
 
 ### 1. Prerequisites
