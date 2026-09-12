@@ -81,19 +81,52 @@ GraphQL endpoint: `http://localhost:8100/subgraphs/name/aetheris`
 
 ---
 
-## 🚀 Quickstart & Setup Instructions
+## 🚀 Quickstart
 
-### 1. Prerequisites
-- Node.js 18+ & Hardhat
-- Python 3.11+
-- Hedera Testnet Account & RPC
+### Prerequisites
+- Node.js 18+
+- Docker (for the self-hosted subgraph)
+- A funded Hedera testnet **ECDSA** account — [portal.hedera.com/faucet](https://portal.hedera.com/faucet)
+  (ED25519 keys will not work: the EVM JSON-RPC relay requires ECDSA)
 
-### 2. Installation & Contract Compilation
+### 1. Install and configure
 ```bash
 git clone https://github.com/mrnetwork0001/Aetheris.git
 cd Aetheris
 npm install
+cp .env.example .env      # then set PRIVATE_KEY
+```
+
+### 2. Compile and test the contracts
+```bash
 npm run compile
+npm run test:contracts    # 37 tests, both settlement paths
+```
+
+### 3. Deploy to Hedera testnet
+```bash
+npm run deploy:hedera
+```
+Prints paste-ready blocks for `.env` and `subgraph/subgraph.yaml`. To skip this
+and use the existing deployment, the addresses above are already in
+`.env.example` and `subgraph/subgraph.yaml`.
+
+### 4. Seed a job lifecycle
+```bash
+npx hardhat run scripts/seed.js --network hederaTestnet
+```
+Creates an HTS token and three auto-associated sub-agent accounts, then runs
+four jobs covering every status. Without this the subgraph indexes an empty
+database and the dashboard has nothing to show.
+
+### 5. Index and run
+```bash
+docker compose -f subgraph/docker-compose.yml up -d
+npx graph create --node http://localhost:8020/ aetheris
+npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5101 \
+  aetheris subgraph/subgraph.yaml --output-dir subgraph/build
+
+npm run dev                # http://localhost:3000
 ```
 
 ---
