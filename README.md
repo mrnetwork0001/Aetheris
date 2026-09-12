@@ -29,7 +29,7 @@
 
 ### 2. Installation & Contract Compilation
 ```bash
-git clone https://github.com/mrnetwork/Aetheris.git
+git clone https://github.com/mrnetwork0001/Aetheris.git
 cd Aetheris
 npm install
 npm run compile
