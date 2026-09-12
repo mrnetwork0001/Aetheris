@@ -131,5 +131,32 @@ npm run dev                # http://localhost:3000
 
 ---
 
+## 🧩 Integration status
+
+Every panel without a live backend is badged **DEMO DATA** in the UI with the
+missing variable named inline — nothing is presented as chain data that isn't.
+
+| Integration | Status | Needs |
+| :--- | :--- | :--- |
+| **Hedera** EVM · HTS · HCS | Live — contracts deployed, HTS settlements on-chain | HCS anchoring needs `HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` |
+| **The Graph** | Live — self-hosted node, synced, no indexing errors | — |
+| **ENS** | Live — resolves against Ethereum mainnet | — |
+| **World ID** | Contract deploys in **explicit bypass mode** | `WORLD_ID_ROUTER_ADDRESS` for on-chain proofs, `NEXT_PUBLIC_WORLD_ID_APP_ID` for cloud verification |
+| **1inch** | Routes implemented, returns a typed 502 without a key | `ONEINCH_API_KEY` |
+| **Privy** | Configured, login not exercised | `NEXT_PUBLIC_PRIVY_APP_ID` |
+
+### On World ID bypass mode
+
+With no `WORLD_ID_ROUTER_ADDRESS` set, `AetherisAgency` deploys in a bypass
+mode that is **announced on-chain, never silent**: the constructor emits
+`WorldIdBypassActive` with an explanatory reason, and every bypassed
+registration emits `OperatorVerifiedWithoutProof`.
+
+Only the zero-knowledge check is skipped. **Nullifier replay protection stays
+fully active** — a consumed nullifier is still burned and cannot be reused.
+`setWorldId(router, groupId)` enables real verification without redeploying.
+
+---
+
 ## 📄 License
 Apache 2.0 Open Source
