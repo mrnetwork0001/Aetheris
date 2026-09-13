@@ -46,16 +46,16 @@ const SPONSORS: readonly Sponsor[] = [
     role: "Proof of personhood",
     glyph: "◎",
     tone: "text-fl-fg",
-    body: "verifyOperator takes a Semaphore proof and burns its nullifier. Testnet deploy runs in explicit bypass mode, announced on-chain.",
+    body: "Proofs are verified by World ID 4.0 and the nullifier is burned on-chain by the relay. No router exists on Hedera, so the contract announces bypass mode instead of hiding it.",
     status: "needs-key",
-    needs: "WORLD_ID_ROUTER_ADDRESS",
+    needs: "NEXT_PUBLIC_WORLD_ID_APP_ID",
   },
   {
     name: "1inch",
     role: "Swap API v6.0",
     glyph: "⟁",
     tone: "text-[#f87171]",
-    body: "Treasury rebalancing quotes and builds, called server-side. Without a key the route returns a typed 502 instead of fake prices.",
+    body: "Live swap quotes and transaction builds on EVM chains through a server-side proxy. Hedera settles through HTS, so routing serves the operator's EVM wallet.",
     status: "needs-key",
     needs: "ONEINCH_API_KEY",
   },
@@ -64,7 +64,7 @@ const SPONSORS: readonly Sponsor[] = [
     role: "Embedded passkey wallets",
     glyph: "◈",
     tone: "text-[#c4b5fd]",
-    body: "Operators sign in with a passkey and get an embedded wallet. The provider is wired; login is not exercised until the app id is set.",
+    body: "Operators and clients sign in with a passkey and get an embedded wallet on Hedera testnet; clients fund jobs from it in the browser.",
     status: "needs-key",
     needs: "NEXT_PUBLIC_PRIVY_APP_ID",
   },
@@ -117,7 +117,35 @@ function SponsorCard({ sponsor, decorative = false }: { sponsor: Sponsor; decora
 /** Card width + the 20px track gap (§9.4). */
 const MARQUEE_GAP = 20;
 
-export function EcosystemRow() {
+export interface LiveStatus {
+  worldId: boolean;
+  oneinch: boolean;
+  privy: boolean;
+}
+
+export interface EcosystemRowProps {
+  /** Real configuration, read on the server: which keyed integrations are live right now. */
+  live: LiveStatus;
+}
+
+const LIVE_BY_ENV: Record<string, keyof LiveStatus> = {
+  NEXT_PUBLIC_WORLD_ID_APP_ID: "worldId",
+  ONEINCH_API_KEY: "oneinch",
+  NEXT_PUBLIC_PRIVY_APP_ID: "privy",
+};
+
+export function EcosystemRow({ live }: EcosystemRowProps) {
+  const sponsors = SPONSORS.map((sponsor) => {
+    const key = sponsor.needs ? LIVE_BY_ENV[sponsor.needs] : undefined;
+    const status: Status = key && live[key] ? "integrated" : sponsor.status;
+    return { ...sponsor, status };
+  });
+  const liveCount = sponsors.filter((s) => s.status === "integrated").length;
+  const pending = sponsors.length - liveCount;
+  const summary =
+    pending === 0
+      ? `all ${sponsors.length} run live today.`
+      : `${liveCount} run live today, ${pending} ${pending === 1 ? "is" : "are"} wired and ${pending === 1 ? "waits" : "wait"} on a key.`;
   // The overflow container, not the animated track: chevrons nudge its `scrollLeft`.
   const rowRef = React.useRef<HTMLDivElement>(null);
   // Once a chevron is used the marquee yields to manual scrolling.
@@ -145,7 +173,7 @@ export function EcosystemRow() {
             />
             <p className="mt-4 text-[1.05rem] leading-[1.65] text-fl-fg2">
               Every integration owns a specific job in the settlement loop. The pill on each card
-              is the real status: three run live today, three are wired and wait on a key.
+              is the real status: {summary}
             </p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -181,10 +209,10 @@ export function EcosystemRow() {
         className="ecosystem-row -mx-6 mt-10 px-6 pb-4 pt-2 md:mx-0 md:px-0"
       >
         <ul className="ecosystem-track">
-          {SPONSORS.map((sponsor) => (
+          {sponsors.map((sponsor) => (
             <SponsorCard key={sponsor.name} sponsor={sponsor} />
           ))}
-          {SPONSORS.map((sponsor) => (
+          {sponsors.map((sponsor) => (
             <SponsorCard key={`${sponsor.name}-clone`} sponsor={sponsor} decorative />
           ))}
         </ul>

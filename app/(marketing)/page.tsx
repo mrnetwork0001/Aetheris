@@ -15,7 +15,13 @@ export default function HomePage() {
       <Manifesto />
       <ProblemCards />
       <LedgerSection />
-      <EcosystemRow />
+      <EcosystemRow
+        live={{
+          worldId: Boolean(process.env.NEXT_PUBLIC_WORLD_ID_APP_ID && process.env.WORLD_ID_RP_ID && process.env.WORLD_ID_RP_SIGNING_KEY),
+          oneinch: Boolean(process.env.ONEINCH_API_KEY),
+          privy: Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID),
+        }}
+      />
       <ComparisonTable />
       <Faq />
       <Cta />
