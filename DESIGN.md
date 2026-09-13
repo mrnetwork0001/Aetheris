@@ -30,7 +30,7 @@ appears to scoop into it; corners alternate down the page.
 
 Nav (links flush right) → hero with a JSX-built tilted product mockup →
 dark manifesto band → three problem cards → Ledger section with the spinning
-mark → sponsor card marquee with real integration status → ✗/✓ comparison
+mark → sponsor card marquee with real integration status → yes/no comparison
 table → FAQ → CTA with HashScan links → four-column footer.
 
 ## 4. App shell

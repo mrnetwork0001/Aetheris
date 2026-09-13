@@ -24,7 +24,7 @@ export interface RoleToggleProps {
  * client, or that nothing is connected yet.
  */
 export function RoleToggle({ compact = false, className }: RoleToggleProps) {
-  const { role, setRole, wallet, walletReady, privyEnabled, isOperator, isClient, myJobs, login } = useRole();
+  const { role, setRole, wallet, walletReady, privyEnabled, isOperator, isClient, myJobs } = useRole();
 
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
@@ -36,43 +36,34 @@ export function RoleToggle({ compact = false, className }: RoleToggleProps) {
     event.currentTarget.querySelector<HTMLButtonElement>(`[data-role="${next.id}"]`)?.focus();
   }
 
-  let status: React.ReactNode;
+  // The status line only speaks for a connected wallet - the sidebar's wallet card
+  // already owns sign-in, so a disconnected state shows nothing here.
+  let status: React.ReactNode = null;
   let dot = "bg-fl-fg3";
-  if (!privyEnabled) {
-    status = <>Privy not configured - viewing as {role}</>;
-  } else if (!walletReady) {
-    status = <>Connecting wallet…</>;
-  } else if (!wallet) {
-    status = (
-      <>
-        Not connected - viewing as {role}.{" "}
-        <button type="button" onClick={login} className="underline decoration-dotted underline-offset-2 hover:text-white">
-          Sign in
-        </button>
-      </>
-    );
-  } else if (isOperator) {
-    dot = "bg-fl-accent";
-    status = (
-      <>
-        <span className="text-white">You are the operator</span> · <span className="data-mono">{shortAddress(wallet)}</span>
-      </>
-    );
-  } else if (isClient) {
-    dot = "bg-emerald-400";
-    status = (
-      <>
-        <span className="text-white">Client</span> · {myJobs} job{myJobs === 1 ? "" : "s"} funded by{" "}
-        <span className="data-mono">{shortAddress(wallet)}</span>
-      </>
-    );
-  } else {
-    dot = "bg-amber-400";
-    status = (
-      <>
-        <span className="data-mono">{shortAddress(wallet)}</span> has no jobs yet - switch to Client to fund one
-      </>
-    );
+  if (privyEnabled && walletReady && wallet) {
+    if (isOperator) {
+      dot = "bg-fl-accent";
+      status = (
+        <>
+          <span className="text-white">You are the operator</span> · <span className="data-mono">{shortAddress(wallet)}</span>
+        </>
+      );
+    } else if (isClient) {
+      dot = "bg-emerald-400";
+      status = (
+        <>
+          <span className="text-white">Client</span> · {myJobs} job{myJobs === 1 ? "" : "s"} funded by{" "}
+          <span className="data-mono">{shortAddress(wallet)}</span>
+        </>
+      );
+    } else {
+      dot = "bg-amber-400";
+      status = (
+        <>
+          <span className="data-mono">{shortAddress(wallet)}</span> has no jobs yet - switch to Client to fund one
+        </>
+      );
+    }
   }
 
   return (
@@ -106,7 +97,7 @@ export function RoleToggle({ compact = false, className }: RoleToggleProps) {
           );
         })}
       </div>
-      {compact ? null : (
+      {compact || status === null ? null : (
         <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-snug text-fl-fg3" aria-live="polite">
           <span aria-hidden="true" className={cn("mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full", dot)} />
           <span className="min-w-0">{status}</span>
