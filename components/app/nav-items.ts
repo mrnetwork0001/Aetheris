@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BookOpen,
   Briefcase,
   Building2,
   LayoutDashboard,
@@ -34,12 +35,14 @@ export function navItems(agencyAddress: string): NavItem[] {
       pathname: "/agency",
       hash: "",
     },
+    { href: "/docs", label: "Docs", icon: BookOpen, pathname: "/docs", hash: "" },
   ];
 }
 
 export function isActive(item: NavItem, pathname: string | null, hash: string): boolean {
   if (pathname === null) return false;
   if (item.pathname === "/agency") return pathname.startsWith("/agency");
+  if (item.pathname === "/docs") return pathname === "/docs" || pathname.startsWith("/docs/");
   if (pathname !== item.pathname) return false;
   return hash === item.hash;
 }

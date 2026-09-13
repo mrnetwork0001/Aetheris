@@ -43,7 +43,7 @@ const COLUMNS: ReadonlyArray<{ heading: string; links: readonly FooterLink[] }> 
   {
     heading: "Resources",
     links: [
-      { label: "Docs", href: DOCS, external: true },
+      { label: "Docs", href: DOCS },
       { label: "GitHub", href: GITHUB, external: true },
       { label: "HashScan", href: HASHSCAN_AGENCY, external: true },
       { label: "ETHOnline", href: ETHONLINE, external: true },

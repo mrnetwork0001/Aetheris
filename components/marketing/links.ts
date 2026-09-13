@@ -13,7 +13,7 @@ export const HASHSCAN_AGENCY = `https://hashscan.io/testnet/contract/${AGENCY_AD
 export const HASHSCAN_TREASURY = `https://hashscan.io/testnet/contract/${TREASURY_ADDRESS}`;
 
 export const GITHUB = "https://github.com/mrnetwork0001/Aetheris";
-export const DOCS = `${GITHUB}#readme`;
+export const DOCS = "/docs";
 export const GITHUB_CONTRACTS = `${GITHUB}/tree/main/contracts`;
 export const GITHUB_SUBGRAPH = `${GITHUB}/tree/main/subgraph`;
 export const GITHUB_SEED = `${GITHUB}/blob/main/scripts/seed.js`;
@@ -26,5 +26,5 @@ export const NAV_LINKS: ReadonlyArray<{ href: string; label: string; external?: 
   { href: "#how-it-works", label: "How it works" },
   { href: "#ledger", label: "Ledger" },
   { href: "#faq", label: "FAQ" },
-  { href: DOCS, label: "Docs", external: true },
+  { href: DOCS, label: "Docs" },
 ];
