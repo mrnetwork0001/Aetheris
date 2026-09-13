@@ -25,6 +25,9 @@ import {
  *      so the contract runs in *announced* bypass mode - the Groth16 proof is not
  *      re-checked on-chain - but the REAL nullifier hash is burned, so a second
  *      proof from the same human reverts with `NullifierAlreadyUsed` (→ 409).
+ *   3. Anchors an `OperatorVerified` frame on the HCS audit topic so the dashboard
+ *      can attribute the on-chain nullifier to a verifier-checked proof (best effort:
+ *      an anchoring failure is reported as `warning`, never as a failed relay).
  *
  * Without `NEXT_PUBLIC_WORLD_ID_APP_ID` the route answers 503 and never pretends
  * success. The relay spends the deployer's HBAR, so it is rate-limited per IP.
@@ -41,6 +44,13 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const PROOF_FIELDS = ["merkle_root", "nullifier_hash", "proof", "verification_level"] as const;
 const ZERO_PROOF: readonly [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n] = [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n];
 const DEFAULT_ENS_NAME = "aetheris.eth";
+const TOPIC_ID_RE = /^\d+\.\d+\.\d+$/;
+
+/** The HCS audit topic the OperatorVerified frame is anchored on; "" when unset. */
+function auditTopicId(): string {
+  const configured = optionalEnv("HEDERA_HCS_TOPIC_ID") || optionalEnv("NEXT_PUBLIC_HEDERA_HCS_TOPIC_ID");
+  return TOPIC_ID_RE.test(configured) ? configured : "";
+}
 
 const WORLD_ID_ENV_VARS = [
   "NEXT_PUBLIC_WORLD_ID_APP_ID  (app_… from developer.worldcoin.org → your app)",
@@ -72,6 +82,10 @@ export interface OperatorVerifySuccess {
   /** True when the contract ran without a World ID router (ZK check skipped on-chain). */
   worldIdBypassed: boolean;
   verificationLevel: string;
+  /** HCS `OperatorVerified` frame anchored on the audit topic; `null` when anchoring failed. */
+  hcs: { topicId: string; sequenceNumber: string; transactionId: string } | null;
+  /** Present when the relay succeeded but the HCS anchor could not be written. */
+  warning?: string;
 }
 
 /* ── Naive in-memory rate limiter (per IP, survives HMR via globalThis) ───── */
@@ -327,7 +341,39 @@ export async function POST(request: Request): Promise<NextResponse> {
     /* informational only */
   }
 
-  /* (c) */
+  const v4Level = v4Result && typeof v4Result.verification_level === "string" ? v4Result.verification_level : null;
+  const verificationLevel = v4Result ? v4Level ?? "orb" : proof!.verification_level;
+
+  /* (c) Anchor the provenance on the audit topic - best effort, never fails the relay. */
+  let hcs: OperatorVerifySuccess["hcs"] = null;
+  let warning: string | undefined;
+  const topicId = auditTopicId();
+  if (topicId === "") {
+    warning = "HEDERA_HCS_TOPIC_ID is not set - the OperatorVerified frame was not anchored on HCS.";
+  } else {
+    try {
+      const { submitHcsMessage } = await import("@/lib/hedera");
+      const frame = {
+        evt: "OperatorVerified",
+        operator: signal.toLowerCase(),
+        nullifier: nullifier.toString(10),
+        verificationLevel: v4Result ? v4Level : proof!.verification_level,
+        appId,
+        ...(v4Result
+          ? { rpId: optionalEnv("WORLD_ID_RP_ID") || null, action: v4Result.action ?? (optionalEnv("NEXT_PUBLIC_WORLD_ID_ACTION") || null) }
+          : { action: optionalEnv("NEXT_PUBLIC_WORLD_ID_ACTION") || null }),
+        verifier: v4Result ? "world-id-v4" : "world-id-v2",
+        txHash,
+        at: new Date().toISOString(),
+      };
+      const anchored = await submitHcsMessage(topicId, JSON.stringify(frame));
+      hcs = { topicId: anchored.topicId, sequenceNumber: anchored.sequenceNumber, transactionId: anchored.transactionId };
+    } catch (error) {
+      warning = `verifyOperator was mined but the OperatorVerified frame could not be anchored on HCS topic ${topicId}: ${describeError(error)}`;
+    }
+  }
+
+  /* (d) */
   return NextResponse.json<OperatorVerifySuccess>({
     ok: true,
     txHash,
@@ -337,7 +383,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     ensName: ensName ?? DEFAULT_ENS_NAME,
     blockNumber,
     worldIdBypassed,
-    verificationLevel: v4Result ? "orb" : proof!.verification_level,
+    verificationLevel,
+    hcs,
+    ...(warning ? { warning } : {}),
   });
 }
 

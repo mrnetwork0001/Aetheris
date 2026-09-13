@@ -92,7 +92,9 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone="off">Hedera testnet · 296</Pill>
+          <Pill tone="off" title="Chain id 296">
+            Hedera testnet
+          </Pill>
           <DataSourceBadge source={stats.source} reason={stats.error} />
           {stats.source === "live" ? <OperatorVerificationBadge stats={stats.data} /> : null}
         </div>

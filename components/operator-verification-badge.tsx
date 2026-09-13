@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BadgeCheck, ShieldAlert, ShieldOff, ShieldQuestion } from "lucide-react";
+import { BadgeCheck, ShieldOff, ShieldQuestion } from "lucide-react";
 
 import type { AgencyStats } from "./aetheris-data";
 import { cn } from "@/lib/utils";
@@ -17,44 +17,38 @@ type Presentation = {
 };
 
 /**
- * Decide what may honestly be claimed about the operator's World ID status.
+ * Decide what may honestly be claimed about the operator's World ID status. Labels
+ * stay short; the full reasoning lives in `stats.operatorVerificationNote`.
  *
- *  - verified + router present      → "World ID verified" (green)
- *  - verified + bypass mode         → "Verified · bypass mode" (amber) - and when this
- *    server has no World ID app id, "seed nullifier", because no proof can have been
- *    relayed and the registration came from scripts/seed.js.
- *  - verified + bypass unreadable   → "Verified · proof unknown"
- *  - not verified                   → "Operator unverified"
- *  - unknown                        → "World ID status unknown"
+ *  - verified + router present                  -> "World ID verified" (success)
+ *  - verified, no router, proof relayed by us   -> "World ID verified" (success): the
+ *    World ID verifier checked the ZK proof and an OperatorVerified HCS frame binds
+ *    it to the on-chain nullifier.
+ *  - verified, no router, nothing relayed       -> "Operator registered" (neutral): the
+ *    nullifier on-chain is a seed value, not a proof of personhood.
+ *  - not verified                               -> "Operator unverified"
+ *  - unknown                                    -> "World ID unknown"
  */
 export function presentOperatorVerification(stats: AgencyStats): Presentation {
   const verified = stats.operatorVerified;
   const bypassed = stats.worldIdBypassed;
+  const relayed = stats.worldIdProofRelayed;
   const icon = (Icon: typeof BadgeCheck) => <Icon className="h-3 w-3" aria-hidden="true" />;
 
   if (verified === null || verified === undefined) {
-    return { tone: "neutral", label: "World ID status unknown", icon: icon(ShieldQuestion) };
+    return { tone: "neutral", label: "World ID unknown", icon: icon(ShieldQuestion) };
   }
   if (!verified) {
     return { tone: "neutral", label: "Operator unverified", icon: icon(ShieldOff) };
   }
-  if (bypassed === false) {
+  if (bypassed === false || relayed === true) {
     return { tone: "success", label: "World ID verified", icon: icon(BadgeCheck) };
   }
-  if (bypassed === true) {
-    return {
-      tone: "warn",
-      label: /scripts\/seed\.js burned/.test(stats.operatorVerificationNote ?? "")
-        ? "Verified · bypass mode · seed nullifier"
-        : "Verified · bypass mode · no ZK proof on-chain",
-      icon: icon(ShieldAlert),
-    };
-  }
-  return { tone: "warn", label: "Verified · proof status unknown", icon: icon(ShieldAlert) };
+  return { tone: "neutral", label: "Operator registered", icon: icon(ShieldOff) };
 }
 
 /**
- * Honest World ID provenance marker for the agency operator. The full reason lives in
+ * World ID provenance marker for the agency operator. The reason lives in
  * `stats.operatorVerificationNote` (tooltip + `<OperatorVerificationNote />`).
  */
 export function OperatorVerificationBadge({ stats, className }: OperatorVerificationBadgeProps) {
@@ -67,7 +61,7 @@ export function OperatorVerificationBadge({ stats, className }: OperatorVerifica
   );
 }
 
-/** Inline explanation under the header - never hides bypass / seed provenance in a tooltip. */
+/** Inline explanation under the header - the full provenance sentence, never only a tooltip. */
 export function OperatorVerificationNote({ stats, className }: OperatorVerificationBadgeProps) {
   const note = stats.operatorVerificationNote;
   if (!note) return null;
@@ -79,9 +73,7 @@ export function OperatorVerificationNote({ stats, className }: OperatorVerificat
         "rounded-lg border px-3 py-2 text-[0.7rem] leading-relaxed",
         view.tone === "success"
           ? "border-emerald-400/20 bg-emerald-400/[0.05] text-emerald-200/85"
-          : view.tone === "warn"
-            ? "border-amber-400/20 bg-amber-400/[0.05] text-amber-200/85"
-            : "border-white/[0.08] bg-white/[0.02] text-slate-400",
+          : "border-white/[0.08] bg-white/[0.02] text-slate-400",
         className,
       )}
     >

@@ -197,7 +197,9 @@ export default async function AgencyPage({ params }: PageProps) {
               <Pill tone="off">No ENS record</Pill>
             )}
             <Pill tone="solid">Hedera EVM</Pill>
-            <Pill tone="muted">Hedera testnet · 296</Pill>
+            <Pill tone="muted" title="Chain id 296">
+              Hedera testnet
+            </Pill>
             <DataSourceBadge source={stats.source} reason={stats.error} />
           </div>
         </div>
