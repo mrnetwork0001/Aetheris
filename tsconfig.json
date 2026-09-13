@@ -34,11 +34,5 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "subgraph",
-    "artifacts",
-    "cache",
-    ".next"
-  ]
+  "exclude": ["node_modules", "subgraph", "artifacts", "cache", ".next", "demo"]
 }
