@@ -474,3 +474,68 @@ export function hashscanUrl(kind: 'topic' | 'transaction', id: string): string {
   const network = optionalEnv('HEDERA_NETWORK', 'testnet').toLowerCase();
   return `https://hashscan.io/${network}/${kind}/${encodeURIComponent(id)}`;
 }
+
+/** Upper bound on mirror-node latency for a single-frame lookup. */
+const SINGLE_MESSAGE_TIMEOUT_MS = 5_000;
+
+/**
+ * Read exactly one HCS frame by its sequence number via the mirror node.
+ *
+ * A frame larger than 1,024 bytes occupies several consecutive rows, so this
+ * reads a small ascending window starting at `sequenceNumber` and reassembles
+ * chunks. Only the frame whose first chunk sits at `sequenceNumber` is returned;
+ * asking for a non-first chunk, or for a sequence that does not exist, yields
+ * `null` rather than an error. The mirror node's 404 for an unknown topic or
+ * sequence is likewise `null`.
+ *
+ * @param topicId - HCS topic id (e.g. `0.0.10518320`). Falls back to `HEDERA_HCS_TOPIC_ID`.
+ * @param sequenceNumber - The consensus sequence number of the frame's first chunk.
+ * @returns The whole frame, or `null` when absent.
+ * @throws {HederaError} On network failure or a non-404 HTTP error.
+ */
+export async function readHcsMessage(
+  topicId: string,
+  sequenceNumber: number | string,
+): Promise<HcsMessage | null> {
+  const resolvedTopicId = (topicId ?? '').trim() || optionalEnv('HEDERA_HCS_TOPIC_ID');
+  const seq = String(sequenceNumber).trim();
+  if (!resolvedTopicId || !/^[0-9]{1,19}$/.test(seq)) return null;
+
+  const base = optionalEnv('HEDERA_MIRROR_NODE_URL', HEDERA_MIRROR_NODE_BASE).replace(/\/+$/, '');
+  const url =
+    `${base}/api/v1/topics/${encodeURIComponent(resolvedTopicId)}/messages` +
+    `?sequencenumber=gte:${seq}&limit=8&order=asc`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(SINGLE_MESSAGE_TIMEOUT_MS),
+    });
+  } catch (cause) {
+    throw new HederaError(
+      'mirror node read',
+      `could not reach ${url} - ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+  }
+
+  const text = await response.text();
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw new HederaError('mirror node read', `HTTP ${response.status}: ${text.slice(0, 300)}`);
+  }
+
+  let rows: MirrorNodeMessage[];
+  try {
+    rows = (JSON.parse(text) as MirrorNodeMessagesResponse).messages ?? [];
+  } catch (cause) {
+    throw new HederaError(
+      'mirror node read',
+      `response was not valid JSON - ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+  }
+
+  const { frames } = reassembleHcsChunks(rows);
+  return frames.find((f) => f.sequenceNumber === seq) ?? null;
+}

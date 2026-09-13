@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Briefcase, ChevronDown, ExternalLink } from "lucide-react";
 
+import { specLink } from "@/lib/briefs";
 import { cn, shortAddress } from "@/lib/utils";
 import type { DataSource, Job, JobStatus } from "./aetheris-data";
 import { DataSourceBadge, FallbackNote } from "./data-source-badge";
@@ -29,6 +30,34 @@ const ACTIVE_STATUSES: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "Dispatched",
   "Completed",
 ]);
+
+/**
+ * A job's spec as the user should see it: `hcs://` briefs and well-formed IPFS
+ * CIDs become links (mirror node / public gateway); anything else is plain text.
+ * Links stop propagation so clicking one does not toggle the row.
+ */
+function SpecRef({ spec, className }: { spec: string; className?: string }) {
+  const link = specLink(spec);
+  if (!link.href) {
+    return (
+      <span className={cn("font-mono", className)} title={spec}>
+        {spec}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noreferrer"
+      title={spec}
+      onClick={(event) => event.stopPropagation()}
+      className={cn("font-mono underline decoration-dotted underline-offset-2 hover:text-white", className)}
+    >
+      {link.label}
+    </a>
+  );
+}
 
 function paidRatio(job: Job): number {
   if (job.tasks.length === 0) return 0;
@@ -133,15 +162,13 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
                       #{job.jobId}
                     </TD>
                     <TD>
-                      <span className="block max-w-[26rem] truncate font-medium fg">{job.title}</span>
+                      <span className="block max-w-[26rem] truncate font-medium fg">{job.brief?.title ?? job.title}</span>
                       <span className="mt-0.5 block truncate text-[11px] fg-3">
                         {now === null ? formatDate(job.createdAt) : relativeTime(job.createdAt, now)}
                         {job.specURI ? (
                           <>
                             <span aria-hidden="true"> · </span>
-                            <span className="font-mono" title={job.specURI}>
-                              {job.specURI}
-                            </span>
+                            <SpecRef spec={job.specURI} />
                           </>
                         ) : null}
                       </span>
@@ -212,9 +239,7 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <p className="mono-label">Sub-agent assignments</p>
                             {job.specURI ? (
-                              <span className="data-mono truncate fg-3" title={job.specURI}>
-                                {job.specURI}
-                              </span>
+                              <SpecRef spec={job.specURI} className="data-mono truncate fg-3" />
                             ) : null}
                           </div>
 

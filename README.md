@@ -158,8 +158,11 @@ missing variable named inline - nothing is presented as chain data that isn't.
 appended to `.env`), polls the subgraph for tasks assigned to it, produces the deliverable on the
 **0G Compute Router** (`ZG_API_KEY`, model `glm-5.2`), anchors the text on HCS topic `0.0.10518320`
 and calls `completeTask` with `keccak256(text)` signed by its own key. `scripts/agent-demo.js` is the
-operator side: fund a job in aUSD over HTS, assign one task, wait for the worker, settle, and verify
-that the mirror-node frame hashes to the on-chain `resultHash`. Docs: `/docs/agents`.
+operator side: anchor a job brief on HCS as a `JobBrief` frame (`scripts/briefs.js`, one per role) and
+store it as the job's `specURI` in the form `hcs://<topicId>/<sequenceNumber>`, fund the job in aUSD over
+HTS, assign one task, wait for the worker, settle, and verify that the mirror-node frame hashes to the
+on-chain `resultHash`. The worker reads the brief back from the mirror node, checks its hash, and puts it
+in the prompt before inferring. Docs: `/docs/agents`.
 
 ```bash
 npm run agent:worker      # terminal 1 - long-running worker (needs ZG_API_KEY)

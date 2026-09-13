@@ -2,6 +2,8 @@
  * Operator-side demo for the sub-agent worker (CommonJS, plain ethers v6).
  *
  *   1. make sure the worker identity exists and has HBAR
+ *   1b. anchor the job brief for --role on the HCS audit topic as a JobBrief frame
+ *       and use hcs://<topic>/<seq> as the job's specURI (scripts/briefs.js)
  *   2. approve + createJob with a 1.20 aUSD (HTS) deposit
  *   3. assignSubAgent(jobId, worker, 0.40 aUSD, role)
  *   4. wait for the worker (npm run agent:worker) to completeTask
@@ -9,7 +11,8 @@
  *   6. fetch the deliverable frame back from the mirror node and check that
  *      keccak256(frame.text) equals the on-chain resultHash
  *
- *   node scripts/agent-demo.js [--spec ipfs://...] [--role market-research]
+ *   node scripts/agent-demo.js [--role market-research] [--title "..."] [--brief-file path.txt]
+ *   node scripts/agent-demo.js --spec ipfs://...       # explicit specURI, no brief is anchored
  *   node scripts/agent-demo.js --job 8 [--task 0]     # resume: skip funding, wait / settle / verify
  *
  * Exits non-zero when the hash does not match or the worker never completes.
@@ -17,8 +20,10 @@
 require("dotenv").config();
 
 const { ethers } = require("ethers");
+const fs = require("fs");
 const hcs = require("./hcs");
 const identity = require("./agent-identity");
+const briefs = require("./briefs");
 
 const HTS_TOKEN_ID = "0.0.10484673";
 const HTS_TOKEN_EVM = "0x00000000000000000000000000000000009ffBC1";
@@ -26,7 +31,7 @@ const DEPOSIT = 1_200_000n; // 1.20 aUSD
 const FEE = 400_000n; // 0.40 aUSD
 const HTS_GAS = 1_000_000;
 const TOPIC = (process.env.HEDERA_HCS_TOPIC_ID || "").trim();
-const WAIT_TIMEOUT_MS = 6 * 60_000;
+const WAIT_TIMEOUT_MS = 10 * 60_000; // the Router can need a few retries before a non-empty completion
 const WAIT_STEP_MS = 5_000;
 const TASK_STATUS = ["None", "Assigned", "Completed", "Paid", "Cancelled"];
 const JOB_STATUS = ["None", "Funded", "Dispatched", "Completed", "Settled", "Refunded"];
@@ -82,8 +87,10 @@ function parseLogs(iface, logs, name) {
 
 async function main() {
   if (!TOPIC) throw new Error("HEDERA_HCS_TOPIC_ID is not set in .env");
-  const spec = argValue("--spec", "ipfs://aetheris-demo-" + Date.now());
+  const explicitSpec = argValue("--spec", null);
   const role = argValue("--role", "market-research");
+  const titleOverride = argValue("--title", null);
+  const briefFile = argValue("--brief-file", null);
 
   rule("Worker identity");
   const worker = await identity.loadOrCreateWorker();
@@ -104,6 +111,8 @@ async function main() {
   const resumeJob = argValue("--job", null);
   let jobId, taskId, fromBlock;
   let approveTx = null, createTx = null, assignTx = null;
+  let spec = explicitSpec;
+  let brief = null; // { title, role, text, sequenceNumber, keccak256, mirrorUrl } once anchored
   if (resumeJob !== null) {
     jobId = BigInt(resumeJob);
     taskId = BigInt(argValue("--task", "0"));
@@ -115,9 +124,40 @@ async function main() {
     if (ethers.getAddress(t.subAgent) !== worker.address) {
       throw new Error(`task #${taskId} of job #${jobId} is assigned to ${t.subAgent}, not the worker`);
     }
+    spec = job.specURI;
     log(`  spec ................ ${job.specURI}`);
     fromBlock = (await agency.runner.provider.getBlockNumber()) - 20_000;
   } else {
+    if (explicitSpec !== null) {
+      rule("Job brief");
+      log(`  --spec given; using ${explicitSpec} as the specURI without anchoring a brief`);
+    } else {
+      // The brief is the specification the job is funded against. It is anchored on the
+      // audit topic first so the job's specURI points at a frame anyone can read back.
+      const base = briefs.briefFor(role);
+      if (!base && !briefFile) {
+        throw new Error(`no built-in brief for role "${role}" (have: ${briefs.BRIEFS.map((b) => b.role).join(", ")}); pass --brief-file or --spec`);
+      }
+      const text = briefFile ? fs.readFileSync(briefFile, "utf8") : base.text;
+      const title = titleOverride || (base ? base.title : `${role} brief`);
+      rule(`Anchoring the job brief on HCS ${TOPIC}`);
+      const anchored = await briefs.anchorBrief(hcs, TOPIC, { title, role, client: operator.address, text });
+      spec = anchored.specURI;
+      brief = {
+        title: anchored.frame.title,
+        role,
+        text: anchored.frame.text,
+        sequenceNumber: anchored.sequenceNumber,
+        keccak256: anchored.keccak256,
+        mirrorUrl: `${hcs.MIRROR}/api/v1/topics/${TOPIC}/messages/${anchored.sequenceNumber}`,
+      };
+      log(`  title ............... ${brief.title}`);
+      log(`  brief ............... ${brief.text.length} chars${briefFile ? ` from ${briefFile}` : ` (built-in ${role})`}  keccak256 ${brief.keccak256}`);
+      log(`  HCS seq ............. ${brief.sequenceNumber}  consensus ${anchored.consensusTimestamp}`);
+      log(`  specURI ............. ${spec}`);
+      log(`  mirror node ......... ${brief.mirrorUrl}`);
+    }
+
     rule(`Funding the job - ${fmt(DEPOSIT)} aUSD (HTS ${HTS_TOKEN_ID})`);
     const bal = await token.balanceOf(operator.address);
     log(`  operator aUSD ....... ${fmt(bal)}`);
@@ -209,6 +249,12 @@ async function main() {
 
   rule("Summary");
   log(`  job / task .......... #${jobId} / #${taskId}  (${JOB_STATUS[Number(job.status)]})`);
+  log(`  specURI ............. ${spec}`);
+  if (brief) {
+    log(`  brief title ......... ${brief.title}`);
+    log(`  brief HCS seq ....... ${brief.sequenceNumber}  keccak256 ${brief.keccak256}`);
+    log(`  brief mirror node ... ${brief.mirrorUrl}`);
+  }
   log(`  worker address ...... ${worker.address}  (Hedera ${worker.id})`);
   log(`  worker aUSD ......... ${fmt(workerAusd)}`);
   log(`  role / model ........ ${payload ? payload.role : "?"} / ${payload ? payload.model : "?"} (${payload ? payload.provider : "?"})`);

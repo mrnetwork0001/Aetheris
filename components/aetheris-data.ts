@@ -55,6 +55,12 @@ export interface Job {
   /** Net margin retained by the treasury, base units. Present once settled. */
   netMarginRaw?: string;
   specURI: string;
+  /**
+   * Resolved `JobBrief` frame when `specURI` is `hcs://<topic>/<seq>` and the
+   * mirror node served a frame whose keccak256 matched its text. `null` / absent
+   * otherwise; `title` then falls back to the raw spec.
+   */
+  brief?: { title: string; role: string; sequenceNumber: string; topicId: string } | null;
   status: JobStatus;
   createdAt: number;
   tasks: SubTask[];
@@ -98,6 +104,14 @@ export interface AgencyStats {
    * nullifier, no World ID proof"). Always honest; never claims a proof that was not relayed.
    */
   operatorVerificationNote?: string | null;
+  /**
+   * `true` when an `OperatorVerified` frame on the HCS audit topic carries the same
+   * nullifier the contract holds, i.e. this server verified a real World ID proof and
+   * relayed it. `false` when no such frame exists; `null` when the topic was unreadable.
+   */
+  worldIdProofRelayed?: boolean | null;
+  /** Consensus timestamp (unix seconds) of the matching `OperatorVerified` HCS frame. */
+  worldIdProofRelayedAt?: number | null;
   totalJobs: number;
   activeJobs: number;
   settledJobs: number;
@@ -167,6 +181,7 @@ export const DEMO_STATS: AgencyStats = {
   agency: DEMO_AGENCY_ADDRESS,
   ensName: "aetheris.eth",
   operator: DEMO_OPERATOR_ADDRESS,
+  worldIdProofRelayed: null,
   totalJobs: 148,
   activeJobs: 4,
   settledJobs: 144,

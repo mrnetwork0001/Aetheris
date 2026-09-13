@@ -4,6 +4,8 @@
  * Loop, every POLL_MS:
  *   1. ask the subgraph for tasks assigned to this worker (status Assigned)
  *   2. confirm on-chain that the task is still Assigned to this address
+ *   2b. when job.specURI is hcs://<topic>/<seq>, read the JobBrief frame from the
+ *       mirror node (chunk-aware), check keccak256(text) and put the brief in the prompt
  *   3. run the role-aware prompt on the 0G Compute Router (OpenAI-compatible)
  *   4. anchor the deliverable on HCS: { evt: "Deliverable", ..., keccak256, text }
  *   5. completeTask(jobId, taskId, keccak256(text), topic, seq) signed by the worker
@@ -21,6 +23,7 @@ require("dotenv").config();
 const { ethers } = require("ethers");
 const hcs = require("./hcs");
 const identity = require("./agent-identity");
+const { parseHcsSpec } = require("./briefs");
 
 const SUBGRAPH_URL = (process.env.SUBGRAPH_URL || process.env.NEXT_PUBLIC_SUBGRAPH_URL || "http://38.49.213.208:8100/subgraphs/name/aetheris").trim();
 const POLL_MS = Math.max(2000, Number(process.env.POLL_MS || 10000));
@@ -69,9 +72,49 @@ async function fetchAssigned(address) {
   return data.tasks || [];
 }
 
+// ── Job briefs ──────────────────────────────────────────────────────────────
+
+const MAX_BRIEF_CHARS = 3000;
+/** specURI -> { title, text } | null (null = resolution failed; logged once, not retried). */
+const briefCache = new Map();
+
+/**
+ * Resolve an hcs://<topic>/<seq> specURI to the JobBrief frame it points at. The frame
+ * is read chunk-aware from the mirror node and accepted only when evt is "JobBrief" and
+ * keccak256(text) equals the frame's own keccak256, so the prompt carries exactly the
+ * text the client anchored. Any failure logs once and returns null; the caller falls
+ * back to the plain specURI prompt.
+ */
+async function resolveBrief(specURI) {
+  const ref = parseHcsSpec(specURI);
+  if (!ref) return null;
+  if (briefCache.has(specURI)) return briefCache.get(specURI);
+  let brief = null;
+  try {
+    const frame = await hcs.mirrorMessage(ref.topicId, ref.sequenceNumber, { attempts: 3, delayMs: 1500 });
+    if (!frame) throw new Error("mirror node has no such message");
+    let payload;
+    try { payload = JSON.parse(frame.contents); } catch { throw new Error("frame is not JSON"); }
+    if (!payload || payload.evt !== "JobBrief") throw new Error(`frame evt is ${payload && payload.evt ? payload.evt : "missing"}, not JobBrief`);
+    if (typeof payload.text !== "string" || !payload.text.trim()) throw new Error("frame has no text");
+    if (payload.text.length > MAX_BRIEF_CHARS) throw new Error(`brief is ${payload.text.length} chars; max ${MAX_BRIEF_CHARS}`);
+    const hash = ethers.keccak256(ethers.toUtf8Bytes(payload.text));
+    if (typeof payload.keccak256 !== "string" || hash.toLowerCase() !== payload.keccak256.toLowerCase()) {
+      throw new Error("keccak256(text) does not match the frame keccak256");
+    }
+    const title = typeof payload.title === "string" && payload.title.trim() ? payload.title.trim().slice(0, 80) : `${payload.role || "job"} brief`;
+    brief = { title, text: payload.text, role: payload.role || null, chunks: frame.chunks };
+    log(`    brief "${title}" read from ${specURI} (${payload.text.length} chars, ${frame.chunks} chunk(s), hash ok)`);
+  } catch (e) {
+    log(`    brief ${specURI} unavailable - ${e.message.slice(0, 160)}; using the plain specURI prompt`);
+  }
+  briefCache.set(specURI, brief);
+  return brief;
+}
+
 // ── 0G Compute Router ───────────────────────────────────────────────────────
 
-function buildMessages(task) {
+function buildMessages(task, brief = null) {
   const feeAusd = (Number(task.fee) / 1e6).toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
   const system =
     "You are an autonomous sub-agent inside the Aetheris agency on Hedera. The agency escrows a client deposit, " +
@@ -80,14 +123,20 @@ function buildMessages(task) {
     "so write the final deliverable itself, not a plan or a conversation. Plain text only: no markdown headings, " +
     "no code fences, no bullet symbols other than a leading hyphen. Be concrete and concise. Hard limit: about " +
     `${MAX_DELIVERABLE_CHARS} characters.`;
-  const user =
+  const header =
     `Task role: ${task.role}\n` +
     `Job: #${task.job.jobId}, task #${task.taskId}\n` +
     `Job specification URI: ${task.job.specURI}\n` +
-    `Agreed fee: ${feeAusd} aUSD\n\n` +
-    `Produce the ${task.role} deliverable for this job. If the specification URI cannot be resolved from its name alone, ` +
-    "state the assumptions you make in one short line, then deliver the best concrete result for that role. " +
-    `Keep the whole answer under ${MAX_DELIVERABLE_CHARS} characters.`;
+    `Agreed fee: ${feeAusd} aUSD\n\n`;
+  const user = brief
+    ? header +
+      `Job brief: ${brief.title}\n${brief.text}\n\n` +
+      `Produce the ${task.role} deliverable that satisfies this brief. Follow its requirements exactly and do not restate them. ` +
+      `Keep the whole answer under ${MAX_DELIVERABLE_CHARS} characters.`
+    : header +
+      `Produce the ${task.role} deliverable for this job. If the specification URI cannot be resolved from its name alone, ` +
+      "state the assumptions you make in one short line, then deliver the best concrete result for that role. " +
+      `Keep the whole answer under ${MAX_DELIVERABLE_CHARS} characters.`;
   return [
     { role: "system", content: system },
     { role: "user", content: user },
@@ -134,7 +183,8 @@ async function routerOnce(messages, maxTokens = MAX_TOKENS) {
   let body;
   try { body = JSON.parse(raw); } catch { throw new RouterError("non-JSON response body", { retryable: true }); }
   const content = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content;
-  if (typeof content !== "string" || !content.trim()) throw new RouterError("empty completion", { retryable: false });
+  // The Router occasionally returns an empty choice; that is transient, so retry with backoff.
+  if (typeof content !== "string" || !content.trim()) throw new RouterError("empty completion", { retryable: true });
   return {
     text: content.trim(),
     model: body.model || ZG_MODEL,
@@ -236,10 +286,11 @@ async function handleTask(task, { agencyWorker, agencyRead, worker }) {
     return;
   }
 
-  log(`  inferring ${label} on ${ZG_MODEL} ...`);
+  const brief = await resolveBrief(task.job.specURI);
+  log(`  inferring ${label} on ${ZG_MODEL}${brief ? " with the anchored brief" : ""} ...`);
   let completion;
   try {
-    completion = await infer(buildMessages(task));
+    completion = await infer(buildMessages(task, brief));
   } catch (e) {
     log(`  SKIP ${label}: 0G Router failed - ${e.message.slice(0, 200)} (will retry next poll)`);
     return;

@@ -332,12 +332,69 @@ export async function loadJobs(first = 12): Promise<DataEnvelope<Job[]>> {
     // actually exists on the Hedera mirror node. Failure leaves the field
     // undefined ("unverified") and never demotes the envelope to demo.
     await verifyHcsAnchors(jobs.flatMap((job) => job.tasks));
+    // Jobs whose spec is `hcs://<topic>/<seq>` carry their brief on the audit topic;
+    // resolve those in parallel (bounded) and promote the brief title. Anything that
+    // fails leaves the job as-is and adds one summary caveat.
+    caveats.push(...(await resolveJobBriefs(jobs)));
     return caveats.length > 0
       ? { data: jobs, source: "live", error: caveats.join(" ") }
       : { data: jobs, source: "live" };
   } catch (error) {
     return { data: DEMO_JOBS, source: "demo", error: describeError(error) };
   }
+}
+
+/** Overall cap on resolving briefs for one page load; non-hcs specs cost nothing. */
+const BRIEFS_TIMEOUT_MS = 5_000;
+
+/**
+ * Resolve `JobBrief` frames for every job whose `specURI` is an `hcs://` pointer.
+ * Sets `job.brief` and `job.title` on success; a miss (no frame, not a brief, hash
+ * mismatch, mirror node error or timeout) leaves the job untouched.
+ *
+ * @returns At most one caveat line summarising the misses.
+ */
+async function resolveJobBriefs(jobs: Job[]): Promise<string[]> {
+  let briefs: typeof import("@/lib/briefs");
+  try {
+    briefs = await import("@/lib/briefs");
+  } catch (error) {
+    return [`Job briefs unavailable: ${describeError(error)}`];
+  }
+  const targets = jobs
+    .map((job) => ({ job, spec: briefs.parseSpecURI(job.specURI) }))
+    .filter((t): t is { job: Job; spec: { kind: "hcs"; topicId: string; sequenceNumber: string } } => t.spec.kind === "hcs");
+  if (targets.length === 0) return [];
+
+  const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), BRIEFS_TIMEOUT_MS));
+  const settled = await Promise.race([
+    Promise.allSettled(targets.map(({ spec }) => briefs.loadBrief(spec.topicId, spec.sequenceNumber))),
+    timeout,
+  ]);
+  if (settled === "timeout") {
+    return [`${targets.length} HCS job brief(s) could not be resolved within ${BRIEFS_TIMEOUT_MS / 1000}s.`];
+  }
+
+  const missed: string[] = [];
+  settled.forEach((result, i) => {
+    const target = targets[i];
+    if (!target) return;
+    if (result.status === "fulfilled" && result.value) {
+      const brief = result.value;
+      target.job.brief = {
+        title: brief.title,
+        role: brief.role,
+        sequenceNumber: brief.sequenceNumber,
+        topicId: brief.topicId,
+      };
+      target.job.title = brief.title;
+    } else {
+      missed.push(target.job.jobId);
+    }
+  });
+  return missed.length > 0
+    ? [`${missed.length} HCS job brief(s) did not resolve from the mirror node (job ${missed.join(", ")}).`]
+    : [];
 }
 
 /**
@@ -540,8 +597,10 @@ function describeOperatorVerification(input: {
   configured: boolean;
   relayable: boolean;
   relayDetail: string;
+  relayed?: boolean | null;
+  relayedAt?: number | null;
 }): string {
-  const { verified, bypassed, configured, relayable, relayDetail } = input;
+  const { verified, bypassed, configured, relayable, relayDetail, relayed, relayedAt } = input;
   if (verified === null || verified === undefined) {
     return "World ID status unknown - the operator is not indexed and the contract could not be read.";
   }
@@ -551,21 +610,78 @@ function describeOperatorVerification(input: {
   if (bypassed === false) {
     return "World ID proof verified on-chain: AetherisAgency checked the Groth16 proof through the World ID router and burned the nullifier.";
   }
-  const bypassClause =
-    bypassed === true
-      ? "AetherisAgency.worldIdVerificationBypassed() is true - the contract has no World ID router on Hedera, so verifyOperator burned the nullifier WITHOUT checking a ZK proof."
-      : "worldIdVerificationBypassed() could not be read, so whether a ZK proof was checked on-chain is unknown.";
-  let sourceClause: string;
-  if (relayable) {
-    sourceClause =
-      "World ID app, action and relying party are live on this server, but the contract cannot attribute the nullifier to a relayed World ID proof versus the scripts/seed.js seed - treat it as unproven until a proof is relayed through /api/operator/verify.";
-  } else if (configured) {
-    sourceClause = `World ID is partly configured but NOT yet able to relay a proof (${relayDetail || "readiness unknown"}), so no World ID proof has been relayed: this nullifier is the random one scripts/seed.js burned in bypass mode, not a proof of personhood.`;
-  } else {
-    sourceClause =
-      "World ID is NOT configured on this server (NEXT_PUBLIC_WORLD_ID_APP_ID is empty), so no World ID proof has ever been relayed: this nullifier is the random one scripts/seed.js burned in bypass mode, not a proof of personhood.";
+  if (relayed === true) {
+    const when = relayedAt ? ` on ${formatRelayDate(relayedAt)}` : "";
+    return `The ZK proof behind this nullifier was verified by the World ID verifier and relayed by this server${when} (OperatorVerified frame on the HCS audit topic). The contract burned the nullifier without an on-chain router because none exists on Hedera.`;
   }
-  return `Verified in BYPASS mode. ${bypassClause} ${sourceClause}`;
+  const routerClause =
+    bypassed === true
+      ? "The contract has no World ID router on Hedera, so verifyOperator burned the nullifier without an on-chain ZK check."
+      : "Whether the contract checked a ZK proof on-chain is unknown (worldIdVerificationBypassed() could not be read).";
+  let sourceClause: string;
+  if (relayed === null) {
+    sourceClause = "The HCS audit topic could not be read, so whether a World ID proof was relayed for this nullifier is unknown.";
+  } else if (relayable) {
+    sourceClause = "No OperatorVerified frame on the audit topic matches this nullifier, so it is treated as the scripts/seed.js registration until a proof is relayed through /api/operator/verify.";
+  } else if (configured) {
+    sourceClause = `No World ID proof has been relayed (${relayDetail || "relay readiness unknown"}); this nullifier is the random one scripts/seed.js burned, not a proof of personhood.`;
+  } else {
+    sourceClause = "World ID is not configured on this server (NEXT_PUBLIC_WORLD_ID_APP_ID is empty); this nullifier is the random one scripts/seed.js burned, not a proof of personhood.";
+  }
+  return `${routerClause} ${sourceClause}`;
+}
+
+function formatRelayDate(unixSeconds: number): string {
+  try {
+    return new Date(unixSeconds * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  } catch {
+    return new Date(unixSeconds * 1000).toISOString().slice(0, 10);
+  }
+}
+
+/**
+ * Look for an `OperatorVerified` frame on the HCS audit topic whose nullifier equals
+ * the on-chain one. Returns `{ relayed: false }` when none matches, `{ relayed: null }`
+ * when the topic could not be read (no topic configured, mirror node down).
+ */
+async function findRelayedProofFrame(
+  nullifierHash: string | null | undefined,
+): Promise<{ relayed: boolean | null; at: number | null }> {
+  const topic = hcsTopicId();
+  if (topic === "" || !nullifierHash) return { relayed: null, at: null };
+  let target: bigint;
+  try {
+    target = BigInt(nullifierHash);
+  } catch {
+    return { relayed: null, at: null };
+  }
+  try {
+    const { readHcsMessages } = await import("@/lib/hedera");
+    const rows = await readHcsMessages(topic, 100);
+    for (const row of rows) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(row.contents);
+      } catch {
+        continue;
+      }
+      if (!isRecord(parsed) || parsed.evt !== "OperatorVerified") continue;
+      const raw = parsed.nullifier;
+      if (typeof raw !== "string" && typeof raw !== "number") continue;
+      let candidate: bigint;
+      try {
+        candidate = BigInt(raw);
+      } catch {
+        continue;
+      }
+      if (candidate !== target) continue;
+      const seconds = Math.floor(Number(String(row.consensusTimestamp).split(".")[0]));
+      return { relayed: true, at: Number.isFinite(seconds) && seconds > 0 ? seconds : null };
+    }
+    return { relayed: false, at: null };
+  } catch {
+    return { relayed: null, at: null };
+  }
 }
 
 /**
@@ -617,12 +733,28 @@ async function annotateOperatorVerification(stats: AgencyStats, caveats: string[
     caveats.push(`On-chain World ID registry read failed (showing subgraph value): ${describeError(error)}`);
   }
 
+  // Provenance: an OperatorVerified frame on the audit topic with the same nullifier
+  // means this server verified a real proof and relayed it (the contract cannot tell).
+  if (stats.operatorVerified && stats.worldIdBypassed !== false) {
+    const frame = await findRelayedProofFrame(stats.operatorNullifierHash);
+    stats.worldIdProofRelayed = frame.relayed;
+    stats.worldIdProofRelayedAt = frame.at;
+    if (frame.relayed === null) {
+      caveats.push("HCS audit topic could not be scanned for an OperatorVerified frame - World ID relay provenance is unknown.");
+    }
+  } else {
+    stats.worldIdProofRelayed = null;
+    stats.worldIdProofRelayedAt = null;
+  }
+
   stats.operatorVerificationNote = describeOperatorVerification({
     verified: stats.operatorVerified,
     bypassed: stats.worldIdBypassed,
     configured,
     relayable,
     relayDetail,
+    relayed: stats.worldIdProofRelayed,
+    relayedAt: stats.worldIdProofRelayedAt,
   });
 }
 

@@ -146,14 +146,33 @@ export default function AgentsPage() {
       </OL>
       <KV rows={FRAME_ROWS} caption="The Deliverable frame" />
 
+      <H3 id="briefs">Job briefs</H3>
+      <P>
+        A job&apos;s <Code>specURI</Code> is an opaque string to the contract, so the demo gives it a shape the
+        worker can read: <Code>hcs://&lt;topicId&gt;/&lt;sequenceNumber&gt;</Code> points at a{" "}
+        <Code>JobBrief</Code> frame on the audit topic,{" "}
+        <Code>{'{ evt: "JobBrief", title, role, client, chars, keccak256, text }'}</Code>, where{" "}
+        <Code>keccak256</Code> covers exactly <Code>text</Code>. <Code>scripts/agent-demo.js</Code> anchors the
+        brief for the chosen role (<Code>scripts/briefs.js</Code> ships one per role; <Code>--title</Code> and{" "}
+        <Code>--brief-file</Code> override it) before <Code>createJob</Code>, and stores the resulting URI on the
+        job. Before inferring, the worker parses the URI, fetches the frame chunk-aware from the mirror node,
+        checks <Code>evt</Code> and that <Code>keccak256(text)</Code> matches the frame, and puts{" "}
+        <Code>Job brief: &lt;title&gt;</Code> plus the text into the user prompt. Briefs are cached per URI; if the
+        frame is missing, malformed or fails the hash check the worker logs once and falls back to the plain
+        specURI prompt, so a bad brief never blocks a task and never changes what is hashed and anchored.
+      </P>
+
       <H2 id="run">How to run it</H2>
       <Pre title="shell">{`npm run agent:worker        # node scripts/agent-worker.js - long-running, Ctrl-C to stop
 npm run agent:demo          # node scripts/agent-demo.js  - operator side, one job end to end
-node scripts/agent-demo.js --role technical-writing --spec ipfs://your-spec`}</Pre>
+node scripts/agent-demo.js --role technical-writing                 # anchors the built-in brief for that role
+node scripts/agent-demo.js --role security-audit --brief-file brief.txt --title "Escrow review"
+node scripts/agent-demo.js --spec ipfs://your-spec                  # explicit specURI, no brief anchored`}</Pre>
       <P>
         Start the worker in one terminal. It prints its address, model, subgraph URL, poll interval and HBAR
         balance, tops itself up from the operator if low, and then waits. In a second terminal the demo creates the
-        identity if it does not exist yet, approves and funds a job with 1.20 aUSD over HTS, assigns one task at
+        identity if it does not exist yet, anchors the job brief on HCS and prints its title, sequence number and
+        mirror node URL, approves and funds a job with 1.20 aUSD over HTS, assigns one task at
         0.40 aUSD to the worker with the role you pass (default <Code>market-research</Code>), polls{" "}
         <Code>getTask</Code> until it is <Code>Completed</Code> (six minutes, with a reminder to start the worker
         if nothing happens), settles the job, and prints a summary: worker address, HCS sequence, on-chain{" "}

@@ -176,10 +176,20 @@ uint256 public jobCount;`}
           },
           {
             key: <Code>specURI</Code>,
-            value: "Off-chain description of the work (IPFS CID or HTTPS URL). Stored on the job and emitted in JobCreated; the contract never reads it.",
+            value: "Off-chain description of the work. Stored on the job and emitted in JobCreated; the contract never reads it.",
           },
         ]}
       />
+      <P>
+        The contract treats <Code>specURI</Code> as an opaque string, so the value is a convention between the
+        client and the sub-agents. Three forms are in use: <Code>hcs://&lt;topicId&gt;/&lt;sequenceNumber&gt;</Code>{" "}
+        points at a <Code>JobBrief</Code> frame anchored on the audit topic (title, role, client, the brief text and its{" "}
+        <Code>keccak256</Code>), which is what <Code>scripts/agent-demo.js</Code> writes and the worker reads back from
+        the mirror node before inferring (see <A href="/docs/agents#briefs">Job briefs</A>); <Code>ipfs://</Code>{" "}
+        content ids for a specification stored off-chain; or any other opaque string, such as an HTTPS URL, which is
+        stored and displayed as-is. Nothing on-chain validates the form, and a job funded with an unreadable URI is
+        still a valid job.
+      </P>
 
       <H2 id="fee-ceiling">assignSubAgent and FeeExceedsDeposit</H2>
       <P>
