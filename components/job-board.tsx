@@ -220,7 +220,7 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
 
                           {job.tasks.length === 0 ? (
                             <p className="mt-3 text-xs fg-2">
-                              Deposit escrowed — awaiting dispatch to the sub-agent pool.
+                              Deposit escrowed - awaiting dispatch to the sub-agent pool.
                             </p>
                           ) : (
                             <ul className="mt-3 divide-y divide-[color:var(--c-border)] overflow-hidden rounded-[10px] border border-fl-border">
@@ -258,7 +258,7 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
                                     className="data-mono hidden whitespace-nowrap text-fl-accent sm:inline"
                                     title="Hedera Consensus Service sequence number"
                                   >
-                                    {task.hcsSequenceNumber ? `HCS #${task.hcsSequenceNumber}` : "—"}
+                                    {task.hcsSequenceNumber ? `HCS #${task.hcsSequenceNumber}` : "-"}
                                   </span>
                                   <Pill tone={statusTone(task.status)} className="justify-self-end">
                                     {task.status}

@@ -1,19 +1,19 @@
 /**
  * Hedera integration for Aetheris.
  *
- *  • `submitHcsMessage` — **server-only**. Writes an immutable audit entry to a
+ *  • `submitHcsMessage` - **server-only**. Writes an immutable audit entry to a
  *    Hedera Consensus Service topic using operator credentials from the env.
  *    The `@hashgraph/sdk` import is *dynamic* so this module stays import-safe in
  *    client bundles (the UI needs `HEDERA_TESTNET_CHAIN_ID`).
  *
- *  • `readHcsMessages` — reads via the Hedera **mirror node REST API**. We do NOT
+ *  • `readHcsMessages` - reads via the Hedera **mirror node REST API**. We do NOT
  *    open a `TopicMessageQuery` gRPC subscription from a request handler: that is a
  *    long-lived stream and would leak connections in a serverless/Next.js runtime.
  */
 
 import { assertServerOnly, optionalEnv, requireEnv } from './env';
 
-/** Hedera Testnet EVM chain id — the chain AetherisTreasury.sol is deployed to. */
+/** Hedera Testnet EVM chain id - the chain AetherisTreasury.sol is deployed to. */
 export const HEDERA_TESTNET_CHAIN_ID = 296 as const;
 
 /** Default JSON-RPC relay for Hedera Testnet EVM calls. */
@@ -79,7 +79,7 @@ function decodeBase64(b64: string): string {
  * Parse a Hedera operator key, tolerating DER, ECDSA-hex and ED25519-hex forms.
  *
  * Order matters: the SDK's `fromStringDer` does NOT reject a raw 32-byte hex
- * string — it silently returns an ED25519 key for it — so trying DER first on
+ * string - it silently returns an ED25519 key for it - so trying DER first on
  * the deployer's raw ECDSA hex produced a key that signs as the wrong account
  * (`INVALID_SIGNATURE` at precheck). DER is therefore used only for strings that
  * actually carry a DER header; raw hex is read as ECDSA first (the Aetheris
@@ -202,7 +202,7 @@ export async function submitHcsMessage(
  * deleted. Instead an operator appends `{evt:'Correction', voids:[seq…], reason}`
  * and this reader drops the voided sequence numbers from the returned list. The
  * Correction record itself is kept (and rendered by the feed as an ordinary frame)
- * so the log stays auditable — what was voided, and why, remains on record.
+ * so the log stays auditable - what was voided, and why, remains on record.
  *
  * @param limit - Maximum messages to return, 1–100 (default 25). Newest first.
  * @returns Decoded messages ordered newest-first, with voided frames removed.
@@ -234,14 +234,14 @@ export async function readHcsMessages(
   } catch (cause) {
     throw new HederaError(
       'mirror node read',
-      `could not reach ${url} — ${cause instanceof Error ? cause.message : String(cause)}`,
+      `could not reach ${url} - ${cause instanceof Error ? cause.message : String(cause)}`,
     );
   }
 
   const text = await response.text();
 
   if (!response.ok) {
-    // A topic with no messages yet legitimately 404s — treat that as "empty".
+    // A topic with no messages yet legitimately 404s - treat that as "empty".
     if (response.status === 404) return [];
     throw new HederaError('mirror node read', `HTTP ${response.status}: ${text.slice(0, 300)}`);
   }
@@ -252,7 +252,7 @@ export async function readHcsMessages(
   } catch (cause) {
     throw new HederaError(
       'mirror node read',
-      `response was not valid JSON — ${cause instanceof Error ? cause.message : String(cause)}`,
+      `response was not valid JSON - ${cause instanceof Error ? cause.message : String(cause)}`,
     );
   }
 
@@ -305,7 +305,7 @@ export function parseHcsCorrection(message: HcsMessage): HcsCorrection | null {
  * Honour append-only `Correction` records: drop every frame whose sequence
  * number a Correction voids, but keep the Correction records themselves so the
  * audit trail shows what was retracted and why. A Correction can never void
- * itself or another Correction — retractions are themselves on the record.
+ * itself or another Correction - retractions are themselves on the record.
  *
  * @param messages - Decoded frames in any order.
  * @returns The same frames, minus voided ones, original order preserved.

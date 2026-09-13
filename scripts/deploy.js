@@ -1,5 +1,5 @@
 /**
- * Aetheris — Hedera EVM deployment script.
+ * Aetheris - Hedera EVM deployment script.
  *
  *   npx hardhat run scripts/deploy.js --network hederaTestnet
  *
@@ -7,7 +7,7 @@
  * associates the treasury with an HTS token, and prints ready-to-paste blocks for
  * `.env` and `subgraph/subgraph.yaml`.
  *
- * Every secret and address is read from the environment — nothing is hardcoded.
+ * Every secret and address is read from the environment - nothing is hardcoded.
  *
  * Environment (see .env.example):
  *   PRIVATE_KEY                    required by hardhat.config.js to sign the deployment
@@ -52,7 +52,7 @@ async function main() {
   const htsTokenAddress = envOr("AETHERIS_HTS_TOKEN_ADDRESS", "");
 
   console.log(line());
-  console.log("  AETHERIS — Autonomous DeAI Agency & Micro-Treasury");
+  console.log("  AETHERIS - Autonomous DeAI Agency & Micro-Treasury");
   console.log(line());
   console.log(`  network        : ${network.name} (chainId ${chainId})`);
   console.log(`  deployer       : ${deployer.address}`);
@@ -177,7 +177,7 @@ async function main() {
   console.log("  Post-deployment checklist");
   console.log(line("-"));
   if (worldIdRouter === ZERO) {
-    console.log("  [!] WORLD ID BYPASS IS ACTIVE — zero-knowledge proofs are NOT verified.");
+    console.log("  [!] WORLD ID BYPASS IS ACTIVE - zero-knowledge proofs are NOT verified.");
     console.log("      verifyOperator() still burns nullifiers (replay protection is live),");
     console.log("      but any caller can register an operator. Set WORLD_ID_ROUTER_ADDRESS");
     console.log("      and redeploy (or call setWorldId) before handling real value.");

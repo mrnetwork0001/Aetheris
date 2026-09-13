@@ -7,7 +7,7 @@ import { LedgerSection } from "@/components/marketing/ledger-section";
 import { Manifesto } from "@/components/marketing/manifesto";
 import { ProblemCards } from "@/components/marketing/problem-cards";
 
-/** Landing page — DESIGN.md §3, sections 2–9 in order (nav and footer live in the layout). */
+/** Landing page - DESIGN.md §3, sections 2–9 in order (nav and footer live in the layout). */
 export default function HomePage() {
   return (
     <>

@@ -5,7 +5,7 @@ import { badRequest, describeError, notConfigured, readJsonObject } from "../../
 /**
  * POST /api/worldid/rp-context
  *
- * IDKit v4 requires every proof request to carry an `rp_context` — a nonce
+ * IDKit v4 requires every proof request to carry an `rp_context` - a nonce
  * signed by the relying party's key. That key must never reach the browser, so
  * the widget asks this route to mint one immediately before opening.
  *

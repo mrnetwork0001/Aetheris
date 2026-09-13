@@ -5,14 +5,14 @@
  * is what gets anchored on-chain through `completeTask(..., topicId, seq)`.
  *
  * Produces, in order (appended after whatever jobs already exist):
- *   Job A — HTS-settled: 3 tasks paid to the three Hedera-native sub-agents
+ *   Job A - HTS-settled: 3 tasks paid to the three Hedera-native sub-agents
  *           (long-zero addresses, unlimited auto-association) in aUSD 0.0.10484673
- *   Job B — ERC-20-settled: 2 tasks paid in the MockERC20 aUSDC
- *   Job C — Dispatched: 2 tasks, one completed, one outstanding
+ *   Job B - ERC-20-settled: 2 tasks paid in the MockERC20 aUSDC
+ *   Job C - Dispatched: 2 tasks, one completed, one outstanding
  *
- * Reuses what is already on chain — the sub-agents indexed by the subgraph, the
+ * Reuses what is already on chain - the sub-agents indexed by the subgraph, the
  * existing aUSD HTS token (minted with the supply key only if the deployer's
- * balance is short) and the existing MockERC20 — so nothing is provisioned twice.
+ * balance is short) and the existing MockERC20 - so nothing is provisioned twice.
  *
  * Per step, the HCS record goes FIRST for JobCreated / SubAgentAssigned /
  * TaskCompleted (the sequence number is then passed into the contract), and for
@@ -37,7 +37,7 @@ const HTS_TOKEN_ID = "0.0.10484673"; // aUSD, 6 dp
 const HTS_TOKEN_EVM = "0x00000000000000000000000000000000009ffBC1";
 const ERC20_ADDR = "0x21DCc52AbbCAef92B4573dc8B0e1658417c85961"; // MockERC20 aUSDC, 6 dp
 
-// Fallback roster if the subgraph is unreachable — these are the sub-agents it
+// Fallback roster if the subgraph is unreachable - these are the sub-agents it
 // already indexes (the first three are real Hedera accounts 0.0.10484674/6/8).
 const KNOWN_SUB_AGENTS = [
   { id: "0x00000000000000000000000000000000009ffbc2", roles: ["security-audit"] },
@@ -75,7 +75,7 @@ async function loadSubAgents() {
     log(`  subgraph ............ ${rows.length} sub-agents indexed`);
   } catch (e) {
     rows = KNOWN_SUB_AGENTS;
-    log(`  ! subgraph unreachable (${e.message}) — using the known on-chain roster`);
+    log(`  ! subgraph unreachable (${e.message}) - using the known on-chain roster`);
   }
   const all = rows.map((r) => ({ address: ethers.getAddress(r.id), roles: r.roles || [] }));
   return {
@@ -95,12 +95,12 @@ async function anchor(payload) {
 async function runJob(agency, treasury, token, { deposit, specURI, tasks, complete, settle }) {
   const jobId = await agency.createJob.staticCall(token, deposit, specURI);
 
-  // JobCreated — HCS first, then the chain.
+  // JobCreated - HCS first, then the chain.
   await anchor({ evt: "JobCreated", jobId: Number(jobId), token, amount: deposit });
   const created = await (await agency.createJob(token, deposit, specURI, { gasLimit: HTS_GAS })).wait();
-  log(`  job #${jobId} created — ${specURI}  (tx ${created.hash})`);
+  log(`  job #${jobId} created - ${specURI}  (tx ${created.hash})`);
 
-  // SubAgentAssigned — HCS first, then the chain.
+  // SubAgentAssigned - HCS first, then the chain.
   for (let i = 0; i < tasks.length; i++) {
     const t = tasks[i];
     await anchor({ evt: "SubAgentAssigned", jobId: Number(jobId), taskId: i, agent: t.address, amount: t.fee, token });
@@ -108,7 +108,7 @@ async function runJob(agency, treasury, token, { deposit, specURI, tasks, comple
     log(`     ↳ assigned ${t.role} → ${t.address.slice(0, 10)}…  fee ${t.fee}`);
   }
 
-  // TaskCompleted — HCS first; the returned sequence number is what the contract anchors.
+  // TaskCompleted - HCS first; the returned sequence number is what the contract anchors.
   for (let i = 0; i < complete; i++) {
     const resultHash = ethers.keccak256(ethers.toUtf8Bytes(`${specURI}#${i}`));
     const msg = await anchor({ evt: "TaskCompleted", jobId: Number(jobId), taskId: i, agent: tasks[i].address, resultHash });
@@ -116,7 +116,7 @@ async function runJob(agency, treasury, token, { deposit, specURI, tasks, comple
       await agency.completeTask(jobId, i, resultHash, TOPIC, msg.sequenceNumber, { gasLimit: 600_000 })
     ).wait();
 
-    // Read the anchored pair back from the emitted events — this is the on-chain truth.
+    // Read the anchored pair back from the emitted events - this is the on-chain truth.
     const parsed = rc.logs.map((l) => { try { return agency.interface.parseLog(l); } catch { return null; } });
     const completed = parsed.find((p) => p && p.name === "TaskCompleted");
     const anchored = parsed.find((p) => p && p.name === "HcsLogAnchored");
@@ -133,7 +133,7 @@ async function runJob(agency, treasury, token, { deposit, specURI, tasks, comple
     log(`     ↳ task ${i} completed, on-chain hcsSequenceNumber ${completed ? completed.args.hcsSequenceNumber : "?"}`);
   }
 
-  // settleJob — the chain first (the amounts come from its events), then HCS.
+  // settleJob - the chain first (the amounts come from its events), then HCS.
   if (settle) {
     const rc = await (await agency.settleJob(jobId, { gasLimit: 3_000_000 })).wait();
     log(`     ↳ SETTLED (gas ${rc.gasUsed}, tx ${rc.hash})`);
@@ -178,7 +178,7 @@ async function ensureTreasuryAssociated(treasury, treasuryAddr) {
   const res = await fetch(`${hcs.MIRROR}/api/v1/accounts/${treasuryAddr}/tokens?token.id=${HTS_TOKEN_ID}`);
   const body = res.ok ? await res.json() : { tokens: [] };
   if ((body.tokens || []).some((t) => t.token_id === HTS_TOKEN_ID)) {
-    log("  treasury already associated with aUSD — skipping");
+    log("  treasury already associated with aUSD - skipping");
     return;
   }
   await (await treasury.associateToken(HTS_TOKEN_EVM, { gasLimit: HTS_GAS })).wait();
@@ -198,7 +198,7 @@ async function subgraphSeq(jobId, taskId, attempts = 20) {
 }
 
 async function main() {
-  if (!TOPIC) throw new Error("HEDERA_HCS_TOPIC_ID missing from .env — refusing to seed with a fake topic");
+  if (!TOPIC) throw new Error("HEDERA_HCS_TOPIC_ID missing from .env - refusing to seed with a fake topic");
   const [deployer] = await ethers.getSigners();
   const agencyAddr = process.env.NEXT_PUBLIC_AETHERIS_AGENCY_ADDRESS;
   const treasuryAddr = process.env.NEXT_PUBLIC_AETHERIS_TREASURY_ADDRESS;
@@ -218,13 +218,13 @@ async function main() {
   try {
     const already = await agency.isVerifiedOperator(deployer.address).catch(() => false);
     if (already) {
-      log("  operator already verified — skipping");
+      log("  operator already verified - skipping");
     } else {
       await (
         await agency.verifyOperator(deployer.address, 0, ethers.toBigInt(ethers.hexlify(ethers.randomBytes(31))),
           [0, 0, 0, 0, 0, 0, 0, 0], "aetheris.eth", { gasLimit: 900_000 })
       ).wait();
-      log("  operator verified (bypass mode — nullifier burned, ZK check skipped)");
+      log("  operator verified (bypass mode - nullifier burned, ZK check skipped)");
     }
   } catch (e) {
     log("  ! verifyOperator failed:", e.shortMessage || e.message);
@@ -240,7 +240,7 @@ async function main() {
   const byRole = (list, role, fallback) => list.find((a) => a.roles.includes(role)) || list[fallback];
 
   // ── Job A: the HTS path ────────────────────────────────────────────────
-  rule("Job A — settlement through the HTS precompile (aUSD " + HTS_TOKEN_ID + ")");
+  rule("Job A - settlement through the HTS precompile (aUSD " + HTS_TOKEN_ID + ")");
   let htsOk = false;
   try {
     const deposit = 2_750_000n; // 2.75 aUSD
@@ -267,7 +267,7 @@ async function main() {
   }
 
   // ── Jobs B-C: ERC-20 path ──────────────────────────────────────────────
-  rule("Jobs B-C — ERC-20 path (MockERC20 " + ERC20_ADDR + ")");
+  rule("Jobs B-C - ERC-20 path (MockERC20 " + ERC20_ADDR + ")");
   const erc20 = await ethers.getContractAt("MockERC20", ERC20_ADDR);
   const ercNeeded = 1_300_000n + 1_800_000n;
   await (await erc20.mint(deployer.address, ercNeeded)).wait();
@@ -297,7 +297,7 @@ async function main() {
   });
 
   // ── Verification: mirror node ⇄ chain ⇄ subgraph ───────────────────────
-  rule("HCS anchors — mirror node vs on-chain vs subgraph");
+  rule("HCS anchors - mirror node vs on-chain vs subgraph");
   const rows = [];
   for (const a of anchors) {
     const m = await hcs.mirrorMessage(TOPIC, a.hcsSeq);
@@ -319,7 +319,7 @@ async function main() {
 
   rule("Done");
   log(`  jobs on chain ....... ${await agency.jobCount()}`);
-  log(`  HTS settlement ...... ${htsOk ? "yes — MicroSettlement.viaHts = true" : "NOT exercised"}`);
+  log(`  HTS settlement ...... ${htsOk ? "yes - MicroSettlement.viaHts = true" : "NOT exercised"}`);
   log(`  HashScan ............ https://hashscan.io/testnet/contract/${agencyAddr}`);
   log(`  HCS topic ........... https://hashscan.io/testnet/topic/${TOPIC}`);
   hcs.close();

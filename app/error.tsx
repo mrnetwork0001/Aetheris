@@ -39,7 +39,7 @@ export default function GlobalError({
         <h1 className="display-2 mt-3 max-w-2xl fg">Something broke mid-settlement.</h1>
         <p className="lede mt-4 max-w-xl">
           A data source failed in a way the page could not recover from. The integrations degrade to
-          demo fixtures wherever possible — this one did not.
+          demo fixtures wherever possible - this one did not.
         </p>
         {error.digest ? (
           <p className="mt-4 font-mono text-[0.78rem] tabular-nums fg-3">digest {error.digest}</p>

@@ -1,14 +1,14 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  SERVER-ONLY MODULE — on-chain World ID operator registry reads.
+ *  SERVER-ONLY MODULE - on-chain World ID operator registry reads.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Reads the three `AetherisAgency` views that decide what the UI may honestly
  * claim about the operator's World ID status:
  *
- *   - `isVerifiedOperator(operator)`        — did `verifyOperator` run for this address?
- *   - `operatorNullifier(operator)`         — the nullifier hash it burned (0 = none)
- *   - `worldIdVerificationBypassed()`       — true when the contract has NO World ID
+ *   - `isVerifiedOperator(operator)`        - did `verifyOperator` run for this address?
+ *   - `operatorNullifier(operator)`         - the nullifier hash it burned (0 = none)
+ *   - `worldIdVerificationBypassed()`       - true when the contract has NO World ID
  *                                             router, i.e. the Groth16 proof was never
  *                                             checked on-chain (Hedera testnet today).
  *
@@ -35,7 +35,7 @@ export interface OperatorRegistrySnapshot {
   isVerified: boolean;
   /** `operatorNullifier(operator)` as a decimal string; `null` when zero. */
   nullifierHash: string | null;
-  /** `worldIdVerificationBypassed()` — true: no router, ZK check skipped on-chain. */
+  /** `worldIdVerificationBypassed()` - true: no router, ZK check skipped on-chain. */
   worldIdBypassed: boolean;
   /** JSON-RPC endpoint the snapshot was read from. */
   rpcUrl: string;
@@ -44,7 +44,7 @@ export interface OperatorRegistrySnapshot {
 /**
  * Read the operator's World ID registry state straight from Hedera JSON-RPC.
  *
- * @throws If either address is malformed or any of the three `eth_call`s fails —
+ * @throws If either address is malformed or any of the three `eth_call`s fails -
  *         callers keep their previous (subgraph) value and surface the reason.
  */
 export async function readOperatorRegistry(

@@ -1,4 +1,4 @@
-# Aetheris — design system
+# Aetheris - design system
 
 The visual language of the Aetheris frontend. The marketing site alternates
 white and black bands with large rounded "scoops"; the app is a black
@@ -45,9 +45,9 @@ flush tables and honest DEMO DATA / LIVE pills.
 framer-motion and CSS only; everything is disabled under
 `prefers-reduced-motion`, and no real content is ever left at `opacity: 0`.
 
-- `Reveal` — measures on mount (above-the-fold never flickers), reveals on
+- `Reveal` - measures on mount (above-the-fold never flickers), reveals on
   entry via IntersectionObserver plus a rect-check fail-safe.
-- `WipeText` — headings uncover line by line with scroll progress
+- `WipeText` - headings uncover line by line with scroll progress
   (`start 85%` → `end 70%`), mask in the band's own colour.
 - `heroFloat` on the mockup, an auto-scrolling sponsor track that pauses on
   hover, a pulsing ring on the primary CTA, a 3D spin on the Ledger mark, a

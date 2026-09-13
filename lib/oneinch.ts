@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  SERVER-ONLY MODULE — 1inch Swap API v6.0 (multi-chain treasury rebalancing).
+ *  SERVER-ONLY MODULE - 1inch Swap API v6.0 (multi-chain treasury rebalancing).
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Every request carries `Authorization: Bearer ${ONEINCH_API_KEY}`. That key is a
@@ -154,7 +154,7 @@ async function oneInchGet<T>(path: string, params: Record<string, string>): Prom
         path,
         0,
         '',
-        `network error — ${cause instanceof Error ? cause.message : String(cause)}`,
+        `network error - ${cause instanceof Error ? cause.message : String(cause)}`,
       );
       if (attempt === MAX_RETRIES) throw lastError;
       await delay(BASE_BACKOFF_MS * 2 ** attempt);
@@ -170,7 +170,7 @@ async function oneInchGet<T>(path: string, params: Record<string, string>): Prom
           path,
           response.status,
           text,
-          `response was not valid JSON — ${cause instanceof Error ? cause.message : String(cause)}`,
+          `response was not valid JSON - ${cause instanceof Error ? cause.message : String(cause)}`,
         );
       }
     }
@@ -198,7 +198,7 @@ async function oneInchGet<T>(path: string, params: Record<string, string>): Prom
     await delay(backoff);
   }
 
-  /* istanbul ignore next — loop always returns or throws; this satisfies the compiler. */
+  /* istanbul ignore next - loop always returns or throws; this satisfies the compiler. */
   throw lastError ?? new OneInchApiError(path, 0, '', 'exhausted retries with no response');
 }
 
@@ -270,7 +270,7 @@ export async function buildSwapTx(p: {
     dst: p.dst,
     amount: p.amount,
     from: p.from,
-    // v6.0 requires `origin` — the EOA that initiated the swap. For Aetheris the
+    // v6.0 requires `origin` - the EOA that initiated the swap. For Aetheris the
     // treasury signer is both the holder and the originator.
     origin: p.from,
     slippage: String(slippage),

@@ -1,18 +1,18 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  SERVER-ONLY MODULE — World ID proof verification (Proof of Personhood).
+ *  SERVER-ONLY MODULE - World ID proof verification (Proof of Personhood).
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * `verifyWorldIdProof` talks to the World ID **cloud verify** endpoint. Although
  * that call uses no secret today, verification must be authoritative and
- * un-forgeable, so it MUST run on the server (Route Handler / Server Action) —
+ * un-forgeable, so it MUST run on the server (Route Handler / Server Action) -
  * a client-side "verification" is trivially spoofed by the caller.
  *
  * We do not depend on the `server-only` npm package (not in this project's
  * dependency set); instead `assertServerOnly()` provides the same guarantee at
  * runtime, and this banner provides it for readers.
  *
- * `encodeProofForContract` is pure and browser-safe — it is used by the UI to
+ * `encodeProofForContract` is pure and browser-safe - it is used by the UI to
  * prepare calldata for `AetherisAgency.verifyProof(...)` on Hedera EVM.
  */
 
@@ -27,7 +27,7 @@ export type WorldIdProof = {
   verification_level: string;
 };
 
-/** World ID app id (`app_...`). Public — safe to ship to the browser. */
+/** World ID app id (`app_...`). Public - safe to ship to the browser. */
 export const WORLD_ID_APP_ID: string = publicEnv.worldIdAppId;
 
 /** Action identifier registered in the Worldcoin Developer Portal. */
@@ -143,7 +143,7 @@ export async function verifyWorldIdProof(
     try {
       parsed = JSON.parse(rawBody) as unknown;
     } catch {
-      // Non-JSON body (e.g. an HTML gateway error page) — keep `rawBody` for the message.
+      // Non-JSON body (e.g. an HTML gateway error page) - keep `rawBody` for the message.
       parsed = null;
     }
   }
@@ -153,7 +153,7 @@ export async function verifyWorldIdProof(
     return { success: body.success !== false };
   }
 
-  // 4xx means "this proof was rejected" — a normal, expected outcome we surface
+  // 4xx means "this proof was rejected" - a normal, expected outcome we surface
   // to the caller as `success: false` rather than as a thrown exception.
   if (response.status >= 400 && response.status < 500) {
     const body = (parsed ?? {}) as WorldIdErrorBody;
@@ -176,7 +176,7 @@ export async function verifyWorldIdProof(
 /**
  * Unpack an ABI-encoded World ID proof into the arguments the on-chain
  * `IWorldID.verifyProof(root, groupId, signalHash, nullifierHash, externalNullifier, proof)`
- * expects — specifically the `uint256[8]` Groth16 proof plus the two field elements.
+ * expects - specifically the `uint256[8]` Groth16 proof plus the two field elements.
  *
  * @param proof - The IDKit proof object; `proof.proof` is `abi.encode(uint256[8])`.
  * @returns `root`, `nullifierHash` and the 8-element `proof` tuple as bigints.

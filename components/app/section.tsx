@@ -14,7 +14,7 @@ export interface SectionProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
 /**
  * Dashboard section: header row (h2 1.05rem/600 + optional right-aligned
  * action) followed by whatever card the caller passes as children.
- * Server-safe — no hooks — so client panels may render it too.
+ * Server-safe - no hooks - so client panels may render it too.
  */
 export function Section({
   id,

@@ -82,7 +82,7 @@ const FAQS: readonly Faq[] = [
     q: "Why is the subgraph self-hosted?",
     a: (
       <>
-        The Graph&apos;s hosted service and Subgraph Studio do not support Hedera — it is absent
+        The Graph&apos;s hosted service and Subgraph Studio do not support Hedera - it is absent
         from the networks registry that ships with <Code>graph-cli</Code>. Aetheris runs its own{" "}
         <Code>graph-node</Code> against the Hedera JSON-RPC relay, the path Hedera&apos;s own
         subgraph guide documents. <Code>subgraph/docker-compose.yml</Code> brings up the stack;
@@ -98,7 +98,7 @@ const FAQS: readonly Faq[] = [
         <Code>TaskCompleted</Code> and <Code>HcsLogAnchored</Code> carrying the result hash, topic
         and sequence. The dashboard mirrors that topic when <Code>HEDERA_HCS_TOPIC_ID</Code> and
         operator credentials are set. Any panel without a live backend is badged{" "}
-        <Code>DEMO DATA</Code> with the missing variable named inline — nothing is presented as
+        <Code>DEMO DATA</Code> with the missing variable named inline - nothing is presented as
         chain data that isn&apos;t.
       </>
     ),

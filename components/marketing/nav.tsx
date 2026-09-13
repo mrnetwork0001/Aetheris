@@ -9,14 +9,14 @@ import { Logo } from "@/components/logo";
 
 import { LAUNCH_APP, NAV_LINKS } from "./links";
 
-/** DESIGN.md §9.9 — the nav turns solid once the page has scrolled past this. */
+/** DESIGN.md §9.9 - the nav turns solid once the page has scrolled past this. */
 const SCROLL_THRESHOLD = 24;
 
 /**
  * Sticky marketing nav (DESIGN.md §9.9). Transparent over the white hero;
  * after `scrollY > 24` it gets a translucent white ground, backdrop blur and
  * a hairline so it reads over every band. The nav stays light
- * throughout, so we do too — no dark swap. Everything is a plain link, so
+ * throughout, so we do too - no dark swap. Everything is a plain link, so
  * the header works before hydration.
  */
 export function Nav() {

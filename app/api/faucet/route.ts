@@ -4,7 +4,7 @@ import { Contract, JsonRpcProvider, Network, Wallet, isAddress, parseEther, pars
 import { badRequest, describeError, readJsonObject, upstreamFailure } from "../_lib/http";
 
 /**
- * POST /api/faucet — Hedera TESTNET only.
+ * POST /api/faucet - Hedera TESTNET only.
  *
  * Funds a freshly created wallet so the Client flow can be exercised end to
  * end: 1 HBAR for gas (only if the wallet holds < 0.5) and 10 test aUSDC minted

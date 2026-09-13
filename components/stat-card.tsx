@@ -32,7 +32,7 @@ export interface StatCardProps {
   icon: React.ReactNode;
   hint?: string;
   tone?: StatTone;
-  /** Render the value in the accent colour — exactly one tile per row should. */
+  /** Render the value in the accent colour - exactly one tile per row should. */
   accent?: boolean;
   source?: DataSource;
   sourceReason?: string;
@@ -87,9 +87,9 @@ export function StatCard({
     return () => controls.stop();
   }, [inView, value, index, prefersReducedMotion]);
 
-  // Safety net. Anything that stops useInView from firing — no
+  // Safety net. Anything that stops useInView from firing - no
   // IntersectionObserver, a card that never enters the viewport, headless/OG
-  // capture — must never leave a stale figure on screen. Never let a
+  // capture - must never leave a stale figure on screen. Never let a
   // decorative animation be the only path to the real number.
   React.useEffect(() => {
     if (inView || prefersReducedMotion) return;

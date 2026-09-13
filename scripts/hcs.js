@@ -11,7 +11,7 @@
  * Message shape (compact, no whitespace):
  *   { evt, jobId, taskId?, agent?, amount?, token?, resultHash?, tx?, ts }
  *
- * Env: HEDERA_OPERATOR_ID, HEDERA_OPERATOR_KEY (falls back to PRIVATE_KEY — the
+ * Env: HEDERA_OPERATOR_ID, HEDERA_OPERATOR_KEY (falls back to PRIVATE_KEY - the
  * deployer's ECDSA key is the topic's submit key), HEDERA_MIRROR_NODE_URL.
  */
 require("dotenv").config();

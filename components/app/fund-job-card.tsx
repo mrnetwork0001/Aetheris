@@ -34,7 +34,7 @@ export interface FundJobCardProps {
 type Phase = "idle" | "faucet" | "submitting" | "done";
 
 /**
- * The client write path: approve the agency, then createJob — signed by the
+ * The client write path: approve the agency, then createJob - signed by the
  * connected wallet on Hedera testnet. Every precondition that is not met is
  * shown as the reason the button is disabled; nothing is simulated.
  */
@@ -68,12 +68,12 @@ export function FundJobCard({ agency, tokens, className }: FundJobCardProps) {
   }, [refreshBalances]);
 
   let disabledReason: string | null = null;
-  if (!privyEnabled) disabledReason = "NEXT_PUBLIC_PRIVY_APP_ID is not set — no wallet can sign.";
+  if (!privyEnabled) disabledReason = "NEXT_PUBLIC_PRIVY_APP_ID is not set - no wallet can sign.";
   else if (!walletReady) disabledReason = "Wallet initialising…";
   else if (!wallet) disabledReason = "Sign in to fund a job.";
   else if (!token) disabledReason = "No settlement token is known yet.";
-  else if (hbar !== null && hbar === 0n) disabledReason = "No HBAR for gas — use the testnet faucet.";
-  else if (balance && balance.raw === 0n) disabledReason = `No ${balance.symbol} to deposit — use the testnet faucet.`;
+  else if (hbar !== null && hbar === 0n) disabledReason = "No HBAR for gas - use the testnet faucet.";
+  else if (balance && balance.raw === 0n) disabledReason = `No ${balance.symbol} to deposit - use the testnet faucet.`;
 
   let amountRaw: bigint | null = null;
   try {
@@ -96,7 +96,7 @@ export function FundJobCard({ agency, tokens, className }: FundJobCardProps) {
       setNotice(
         <>
           Received {data.token?.amount} {data.token?.symbol}
-          {data.hbar?.hashscan ? " and 1 HBAR" : ""} —{" "}
+          {data.hbar?.hashscan ? " and 1 HBAR" : ""} -{" "}
           <a href={data.token?.hashscan} target="_blank" rel="noreferrer" className="underline decoration-dotted">mint tx</a>
         </>,
       );
@@ -129,7 +129,7 @@ export function FundJobCard({ agency, tokens, className }: FundJobCardProps) {
       });
       setNotice(
         <>
-          Job funded — <a href={`${HASHSCAN_TX}${createHash}`} target="_blank" rel="noreferrer" className="underline decoration-dotted">createJob on HashScan</a>. The subgraph indexes it within ~10 s.
+          Job funded - <a href={`${HASHSCAN_TX}${createHash}`} target="_blank" rel="noreferrer" className="underline decoration-dotted">createJob on HashScan</a>. The subgraph indexes it within ~10 s.
         </>,
       );
       setPhase("done");

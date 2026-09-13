@@ -27,7 +27,7 @@ export default function NotFound() {
         <p className="mono-label mt-6">404 · Not found</p>
         <h1 className="display-2 mt-3 max-w-2xl fg">No agency at that address.</h1>
         <p className="lede mt-4 max-w-xl">
-          Nothing on this route — check the agency address or ENS name, or head back to Mission
+          Nothing on this route - check the agency address or ENS name, or head back to Mission
           Control to watch the agency work.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -63,8 +63,8 @@ export interface TreasuryPanelProps {
 }
 
 /**
- * Renders two dashboard sections — `#treasury` (allocation + the `#swap`
- * 1inch quote form) and `#operator` (World ID gate + margin sweep) — because
+ * Renders two dashboard sections - `#treasury` (allocation + the `#swap`
+ * 1inch quote form) and `#operator` (World ID gate + margin sweep) - because
  * the verification result that unlocks the sweep is state owned here.
  */
 export function TreasuryPanel({
@@ -128,7 +128,7 @@ export function TreasuryPanel({
       });
       if (!response.ok) {
         // 1inch needs a server-side API key; without it we still show the shape
-        // of the result so the flow is demonstrable — labelled as simulated.
+        // of the result so the flow is demonstrable - labelled as simulated.
         const detail = await readApiError(response);
         return simulateQuote(src, dst, amount, detail);
       }
@@ -414,7 +414,7 @@ export function TreasuryPanel({
       <Section
         id="operator"
         title="Human operator required"
-        description="Margin only leaves the treasury when a World-ID-verified human sweeps it — the nullifier is burned once."
+        description="Margin only leaves the treasury when a World-ID-verified human sweeps it - the nullifier is burned once."
       >
         <Card>
           <WorldIdGate

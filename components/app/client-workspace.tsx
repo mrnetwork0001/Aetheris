@@ -28,7 +28,7 @@ const REFUNDABLE = new Set(["Funded", "Dispatched"]);
 
 /**
  * What "Client" means in real time: the jobs funded by the connected wallet,
- * what they deposited, which deposits are still refundable — and the form to
+ * what they deposited, which deposits are still refundable - and the form to
  * fund a new job. Without a wallet it shows the indexed clients so the view
  * is still real, just not personal.
  */
@@ -61,7 +61,7 @@ export function ClientWorkspace({ jobs, source, reason, agency, tokens }: Client
       const hash = await refundJob({ provider, account: wallet, agency, jobId: job.jobId });
       setNote(
         <>
-          Job #{job.jobId} refunded — <a href={`${HASHSCAN_TX}${hash}`} target="_blank" rel="noreferrer" className="underline decoration-dotted">HashScan</a>
+          Job #{job.jobId} refunded - <a href={`${HASHSCAN_TX}${hash}`} target="_blank" rel="noreferrer" className="underline decoration-dotted">HashScan</a>
         </>,
       );
       window.setTimeout(() => router.refresh(), 8000);
@@ -83,10 +83,10 @@ export function ClientWorkspace({ jobs, source, reason, agency, tokens }: Client
         />
         <StatTile
           label="Total deposited"
-          value={deposits.size === 0 ? "—" : Array.from(deposits.values()).map((d) => formatToken(d.raw, d.decimals, d.symbol)).join(" + ")}
+          value={deposits.size === 0 ? "-" : Array.from(deposits.values()).map((d) => formatToken(d.raw, d.decimals, d.symbol)).join(" + ")}
           note="escrowed on AetherisTreasury"
         />
-        <StatTile label="Refundable" value={String(refundable.length)} note="Funded or Dispatched — client can reclaim" />
+        <StatTile label="Refundable" value={String(refundable.length)} note="Funded or Dispatched - client can reclaim" />
       </div>
 
       {!wallet && clients.length > 0 ? (
@@ -97,20 +97,20 @@ export function ClientWorkspace({ jobs, source, reason, agency, tokens }: Client
               <option key={c.address} value={c.address}>{shortAddress(c.address)} · {c.jobs} job{c.jobs === 1 ? "" : "s"}</option>
             ))}
           </select>
-          <span className="text-fl-fg3">— sign in to see and manage your own.</span>
+          <span className="text-fl-fg3">- sign in to see and manage your own.</span>
         </label>
       ) : null}
 
       <Section id="jobs" title={own ? "Your jobs" : "Client jobs"} description={own ? "Jobs funded by the connected wallet." : "Jobs funded by the selected client, from the subgraph."}>
         {mine.length === 0 ? (
-          <EmptyState title="No jobs for this client yet" body={wallet ? "Fund one below — the deposit is escrowed and refundable until settlement." : "Sign in as a client, or pick another address above."} />
+          <EmptyState title="No jobs for this client yet" body={wallet ? "Fund one below - the deposit is escrowed and refundable until settlement." : "Sign in as a client, or pick another address above."} />
         ) : (
           <JobBoard jobs={mine} source={source} reason={reason} />
         )}
       </Section>
 
       {own && refundable.length > 0 ? (
-        <Section id="refunds" title="Refundable deposits" description="Calls AetherisAgency.refundJob — allowed for the client while a job is Funded or Dispatched.">
+        <Section id="refunds" title="Refundable deposits" description="Calls AetherisAgency.refundJob - allowed for the client while a job is Funded or Dispatched.">
           <ul className="divide-y divide-fl-border rounded-[14px] border border-fl-border bg-fl-card">
             {refundable.map((j) => (
               <li key={j.jobId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-[13px]">

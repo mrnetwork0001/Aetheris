@@ -7,13 +7,13 @@ import { Pill } from "./ui/pill";
 
 export interface DataSourceBadgeProps {
   source: DataSource;
-  /** Why the live path was unavailable — surfaced as the tooltip. */
+  /** Why the live path was unavailable - surfaced as the tooltip. */
   reason?: string;
   className?: string;
 }
 
 const LIVE_TITLE = "Served from a live indexed source";
-const DEMO_TITLE = "Rendered from local fixtures — not on-chain data.";
+const DEMO_TITLE = "Rendered from local fixtures - not on-chain data.";
 
 /**
  * Honest provenance marker. Anything rendered from fixtures is badged

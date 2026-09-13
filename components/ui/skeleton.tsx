@@ -6,7 +6,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   return <div aria-hidden="true" className={cn("fl-skeleton", className)} {...props} />;
 }
 
-/** Repeats a skeleton row `count` times — for list and table placeholders. */
+/** Repeats a skeleton row `count` times - for list and table placeholders. */
 export function SkeletonRows({ count = 4, className }: { count?: number; className?: string }) {
   return (
     <div className={cn("space-y-3", className)} role="status" aria-label="Loading">

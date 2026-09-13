@@ -34,8 +34,8 @@ const PROBLEMS: readonly Problem[] = [
         Every task is bound to a payee address and a role such as{" "}
         <code className="mono text-[0.85em]">security-audit</code>. ENS resolves the address, so
         the audit log reads <code className="mono text-[0.85em]">sentinel.aetheris.eth</code>{" "}
-        instead of a 42-character hex string. Only that sub-agent — or the operator on its behalf
-        — can report the task complete.
+        instead of a 42-character hex string. Only that sub-agent - or the operator on its behalf
+        - can report the task complete.
       </>
     ),
   },

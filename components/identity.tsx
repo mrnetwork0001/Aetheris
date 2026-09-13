@@ -80,7 +80,7 @@ export interface ShortAddressProps extends React.HTMLAttributes<HTMLSpanElement>
   full?: boolean;
 }
 
-/** Mono `0x1234…cdef` — the full address stays in the title for copy/inspect. */
+/** Mono `0x1234…cdef` - the full address stays in the title for copy/inspect. */
 export function ShortAddress({ address, full = true, className, ...props }: ShortAddressProps) {
   return (
     <span

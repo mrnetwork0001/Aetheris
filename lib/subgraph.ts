@@ -1,12 +1,12 @@
 /**
- * The Graph — Aetheris DeAI agency analytics subgraph client.
+ * The Graph - Aetheris DeAI agency analytics subgraph client.
  *
  * Entities indexed by the Aetheris subgraph (plural collection names):
  *   agencies · jobs · tasks · subAgents · settlements · rebalances ·
  *   hcsAnchors · agencyDayDatas
  *
- * Resilience contract: if `NEXT_PUBLIC_SUBGRAPH_URL` is unset — or the endpoint is
- * still deploying — every helper degrades to an empty result so the dashboard renders
+ * Resilience contract: if `NEXT_PUBLIC_SUBGRAPH_URL` is unset - or the endpoint is
+ * still deploying - every helper degrades to an empty result so the dashboard renders
  * a clean "no data yet" state instead of crashing. Query field sets are also
  * fallback-guarded: if the subgraph schema does not yet expose a field we ask for,
  * we retry with an id-only projection rather than surfacing a GraphQL error.
@@ -92,7 +92,7 @@ export async function querySubgraph<T>(
   const client = getClient();
   if (!client) {
     console.warn(
-      '[aetheris:subgraph] NEXT_PUBLIC_SUBGRAPH_URL is unset — returning an empty result.',
+      '[aetheris:subgraph] NEXT_PUBLIC_SUBGRAPH_URL is unset - returning an empty result.',
     );
     // Unavoidable cast: the frozen signature promises `T`, and the graceful-degradation
     // contract forbids throwing here. Collection helpers below normalize with `?? []`.
@@ -620,7 +620,7 @@ export async function getTreasuryTokens(): Promise<string[]> {
 }
 
 /**
- * `(assignedAt, paidAt)` pairs — unix seconds — for every task with status `Paid`.
+ * `(assignedAt, paidAt)` pairs - unix seconds - for every task with status `Paid`.
  * Rows missing either timestamp are dropped so the caller can average honestly.
  *
  * @returns Timing pairs, or `[]` when the subgraph is unset/unreachable or no
@@ -679,7 +679,7 @@ export interface AgentTiming {
 }
 
 /**
- * `(subAgent, assignedAt, paidAt)` triples — unix seconds — for every task with
+ * `(subAgent, assignedAt, paidAt)` triples - unix seconds - for every task with
  * status `Paid`. Rows missing the sub-agent or either timestamp are dropped so
  * per-agent averages stay honest.
  *

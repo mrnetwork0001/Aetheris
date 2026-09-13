@@ -19,7 +19,7 @@ const STATUS_TONE = {
 
 /**
  * Pill for the dark card. The card sits inside a light band, whose contextual
- * tokens would recolour `Pill` for white paper — so the dark surface paints
+ * tokens would recolour `Pill` for white paper - so the dark surface paints
  * its own colours explicitly instead of trusting the band context.
  */
 function DarkPill({ tone, children }: { tone: "accent" | "emerald"; children: string }) {
@@ -31,7 +31,7 @@ function DarkPill({ tone, children }: { tone: "accent" | "emerald"; children: st
 }
 
 /**
- * The tilted product preview in the hero. Pure JSX — no images — so it
+ * The tilted product preview in the hero. Pure JSX - no images - so it
  * ships in the HTML, scales with its container, and stays crisp at any DPR.
  * Both cards share one grid cell, so the composition's height is always the
  * taller card and nothing spills into the copy below it on small screens.
@@ -84,7 +84,7 @@ export function HeroMockup() {
         </div>
       </div>
 
-      {/* Dark ledger card — overlaps the light one from the top-right */}
+      {/* Dark ledger card - overlaps the light one from the top-right */}
       <div className="col-start-1 row-start-1 mt-[28%] w-[62%] rotate-6 sm:w-[58%] self-start justify-self-end rounded-[14px] border border-fl-borderHi bg-fl-card text-fl-fg shadow-[0_40px_80px_-24px_rgb(0_0_0/0.7)]">
         <div className="flex items-center justify-between border-b border-fl-border px-4 py-3">
           <span className="flex items-center gap-2">

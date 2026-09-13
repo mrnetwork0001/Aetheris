@@ -4,7 +4,7 @@
  * Signs with whatever EIP-1193 provider the connected wallet exposes (Privy
  * embedded wallet or an external wallet), reads through Hashio. Every helper
  * returns transaction hashes and waits for the receipt, so callers can show
- * real HashScan links — nothing here fakes a transaction.
+ * real HashScan links - nothing here fakes a transaction.
  */
 import {
   createPublicClient,
@@ -110,7 +110,7 @@ export interface CreateJobParams {
 }
 
 /**
- * approve(agency, amount) — skipped when the allowance already covers it —
+ * approve(agency, amount) - skipped when the allowance already covers it -
  * then createJob(token, amount, specURI). The client must approve the AGENCY
  * (not the treasury): the agency pulls the deposit into the treasury itself.
  */
@@ -162,7 +162,7 @@ export async function refundJob(p: { provider: Eip1193Provider; account: string;
 export function explainWriteError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (/user rejected|denied|rejected the request/i.test(message)) return "You rejected the signature.";
-  if (/insufficient funds|insufficient balance/i.test(message)) return "Not enough HBAR for gas — use the testnet faucet below.";
+  if (/insufficient funds|insufficient balance/i.test(message)) return "Not enough HBAR for gas - use the testnet faucet below.";
   if (/FeeExceedsDeposit|ZeroAmount|InvalidJobStatus|NotClientOrOperator/i.test(message)) {
     const m = message.match(/(FeeExceedsDeposit|ZeroAmount|InvalidJobStatus|NotClientOrOperator)/i);
     return `Contract refused: ${m?.[1] ?? "custom error"}.`;

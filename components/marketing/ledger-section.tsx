@@ -31,7 +31,7 @@ const GUARANTEES: readonly Guarantee[] = [
       <>
         <code className="mono text-[0.85em]">verifyOperator</code> burns the World ID nullifier
         before any external call. A reused nullifier reverts with{" "}
-        <code className="mono text-[0.85em]">NullifierAlreadyUsed</code> — in bypass mode too.
+        <code className="mono text-[0.85em]">NullifierAlreadyUsed</code> - in bypass mode too.
       </>
     ),
   },
@@ -93,7 +93,7 @@ export function LedgerSection() {
           <p className="mt-5 max-w-[560px] text-[1.05rem] leading-[1.65] text-light-body">
             Every settlement leaves two records: the contract event, and the Hedera Consensus
             Service anchor it references. The Graph indexes both, so the pipeline in Mission
-            Control is reconciled from indexed events — not from a database the operator
+            Control is reconciled from indexed events - not from a database the operator
             controls.
           </p>
         </Reveal>

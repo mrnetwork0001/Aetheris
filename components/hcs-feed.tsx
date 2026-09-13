@@ -83,7 +83,7 @@ export function HcsFeed({
       <div className="flex flex-wrap items-center gap-2 border-b border-fl-border px-4 py-2.5">
         <span className="inline-flex items-center gap-2 data-mono fg-3">
           <Radio className="h-3.5 w-3.5 text-fl-accent" aria-hidden="true" />
-          topic {payload.topicId || "—"}
+          topic {payload.topicId || "-"}
         </span>
         <span className="ml-auto inline-flex items-center gap-2">
           <DataSourceBadge source={source} reason={notice} />
@@ -120,7 +120,7 @@ export function HcsFeed({
           <div className="m-4 flex items-start gap-2 rounded-[10px] border border-[#ef444440] bg-[#ef44441f] px-3 py-2.5 text-xs leading-relaxed text-[color:var(--c-rose-ink)]">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
-              Live mirror unavailable — showing the last frames received.{" "}
+              Live mirror unavailable - showing the last frames received.{" "}
               <button
                 type="button"
                 onClick={() => void query.refetch()}

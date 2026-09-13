@@ -56,7 +56,7 @@ function storeRole(role: Role) {
   try {
     window.localStorage.setItem(STORAGE_KEY, role);
   } catch {
-    /* storage unavailable — the choice still applies for this session */
+    /* storage unavailable - the choice still applies for this session */
   }
 }
 

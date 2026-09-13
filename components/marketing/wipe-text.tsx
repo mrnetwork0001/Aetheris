@@ -13,7 +13,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-/** Which band the text sits on — the mask is painted in that band's background. */
+/** Which band the text sits on - the mask is painted in that band's background. */
 export type WipeTone = "light" | "dark";
 
 type WipeTag = "h1" | "h2" | "h3" | "p" | "div";
@@ -97,23 +97,23 @@ function WipeLine({ text, index, count, progress, colour, masked, className }: W
  * the copy appears to be uncovered line by line.
  *
  * Guarantees:
- * - SSR and the hydration pass render NO mask — the text is fully visible
+ * - SSR and the hydration pass render NO mask - the text is fully visible
  *   without JavaScript. Masks mount only after the first client effect, when
  *   framer's scroll tracking is live and already knows the correct progress
  *   (a heading the user reloaded past is therefore never covered).
  * - Reduced motion → plain text, no mask, no scroll tracking output.
  * - The mask never fades or hides text through opacity; it is a solid overlay
  *   whose width is driven directly by scroll position, so no missed event can
- *   leave a line stranded — the next scroll tick repaints it.
+ *   leave a line stranded - the next scroll tick repaints it.
  * - The wipe is MONOTONIC (§9.10: "masks fully open on any heading above the
  *   current scroll position"). The masks follow a running high-water mark of
  *   `scrollYProgress`, not the raw value, so scrolling down still scrubs the
  *   uncover line by line, but a line uncovered once never re-covers when the
- *   user scrolls back up — real content is never re-hidden.
+ *   user scrolls back up - real content is never re-hidden.
  * - END-OF-DOCUMENT FAIL-SAFE. `end 70%` needs the block's bottom to travel to
  *   70% of the viewport; for a heading near the foot of the page on a tall
  *   viewport the document simply runs out of scroll first and `scrollYProgress`
- *   plateaus well below 1 — masks would cover real copy forever. So whenever
+ *   plateaus well below 1 - masks would cover real copy forever. So whenever
  *   scrolling is exhausted (`scrollY + innerHeight >= scrollHeight`) and the
  *   block is on screen, the peak is forced to 1. Checked once while arming (a
  *   page loaded scrolled to the bottom opens immediately) and then on passive,
@@ -145,7 +145,7 @@ export function WipeText({
   // loop right after hydration, so by then `scrollYProgress` already holds the
   // real value and a heading the user reloaded past mounts with its masks at 0%
   // instead of flashing covered for a frame. The peak is seeded from that same
-  // measured value — `change` has not necessarily fired yet for a heading the
+  // measured value - `change` has not necessarily fired yet for a heading the
   // page loaded scrolled past, and the masks must open from their first frame.
   React.useEffect(() => {
     if (reduceMotion) return;

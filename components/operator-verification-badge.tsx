@@ -20,7 +20,7 @@ type Presentation = {
  * Decide what may honestly be claimed about the operator's World ID status.
  *
  *  - verified + router present      → "World ID verified" (green)
- *  - verified + bypass mode         → "Verified · bypass mode" (amber) — and when this
+ *  - verified + bypass mode         → "Verified · bypass mode" (amber) - and when this
  *    server has no World ID app id, "seed nullifier", because no proof can have been
  *    relayed and the registration came from scripts/seed.js.
  *  - verified + bypass unreadable   → "Verified · proof unknown"
@@ -67,7 +67,7 @@ export function OperatorVerificationBadge({ stats, className }: OperatorVerifica
   );
 }
 
-/** Inline explanation under the header — never hides bypass / seed provenance in a tooltip. */
+/** Inline explanation under the header - never hides bypass / seed provenance in a tooltip. */
 export function OperatorVerificationNote({ stats, className }: OperatorVerificationBadgeProps) {
   const note = stats.operatorVerificationNote;
   if (!note) return null;

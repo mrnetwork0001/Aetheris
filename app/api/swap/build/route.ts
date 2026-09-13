@@ -15,7 +15,7 @@ import {
  * POST /api/swap/build
  *
  * Returns an unsigned 1inch swap calldata payload for the treasury to sign.
- * This route never signs or broadcasts — it only assembles the transaction.
+ * This route never signs or broadcasts - it only assembles the transaction.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -6,7 +6,7 @@ export interface StatTileProps extends Omit<React.HTMLAttributes<HTMLDivElement>
   label: string;
   value: React.ReactNode;
   note?: React.ReactNode;
-  /** Render the value in the accent colour — exactly one tile per row should. */
+  /** Render the value in the accent colour - exactly one tile per row should. */
   accent?: boolean;
 }
 

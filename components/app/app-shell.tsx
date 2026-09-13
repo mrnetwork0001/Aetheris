@@ -10,7 +10,7 @@ export interface AppShellProps {
 
 /**
  * Black app shell (DESIGN.md §4): sidebar on the left, `#main` landmark on the
- * right. Server component — the interactive pieces are client children.
+ * right. Server component - the interactive pieces are client children.
  */
 export function AppShell({ agencyAddress, children }: AppShellProps) {
   return (

@@ -39,13 +39,13 @@ export function RoleToggle({ compact = false, className }: RoleToggleProps) {
   let status: React.ReactNode;
   let dot = "bg-fl-fg3";
   if (!privyEnabled) {
-    status = <>Privy not configured — viewing as {role}</>;
+    status = <>Privy not configured - viewing as {role}</>;
   } else if (!walletReady) {
     status = <>Connecting wallet…</>;
   } else if (!wallet) {
     status = (
       <>
-        Not connected — viewing as {role}.{" "}
+        Not connected - viewing as {role}.{" "}
         <button type="button" onClick={login} className="underline decoration-dotted underline-offset-2 hover:text-white">
           Sign in
         </button>
@@ -70,7 +70,7 @@ export function RoleToggle({ compact = false, className }: RoleToggleProps) {
     dot = "bg-amber-400";
     status = (
       <>
-        <span className="data-mono">{shortAddress(wallet)}</span> has no jobs yet — switch to Client to fund one
+        <span className="data-mono">{shortAddress(wallet)}</span> has no jobs yet - switch to Client to fund one
       </>
     );
   }

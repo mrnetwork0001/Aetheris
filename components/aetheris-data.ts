@@ -6,12 +6,12 @@
  * a `source` discriminator. Anything rendered from `source: "demo"` MUST be
  * visibly badged in the UI so nothing is ever passed off as live chain data.
  *
- * NOTE: this file intentionally lives under `components/` — `lib/` is owned by
+ * NOTE: this file intentionally lives under `components/` - `lib/` is owned by
  * another workstream and must not be touched.
  */
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Types — mirrored from contracts/interfaces/IAetherisEvents.sol
+   Types - mirrored from contracts/interfaces/IAetherisEvents.sol
    ──────────────────────────────────────────────────────────────────────────── */
 
 /** Mirrors `IAetherisEvents.JobStatus`. */
@@ -94,7 +94,7 @@ export interface AgencyStats {
   /** Whether this server has `NEXT_PUBLIC_WORLD_ID_APP_ID`, i.e. can relay real proofs. */
   worldIdConfigured?: boolean;
   /**
-   * Plain-language provenance of `operatorVerified` (e.g. "bypass mode — seed
+   * Plain-language provenance of `operatorVerified` (e.g. "bypass mode - seed
    * nullifier, no World ID proof"). Always honest; never claims a proof that was not relayed.
    */
   operatorVerificationNote?: string | null;
@@ -180,7 +180,7 @@ export const DEMO_STATS: AgencyStats = {
 export const DEMO_JOBS: Job[] = [
   {
     jobId: "148",
-    title: "Smart-contract security audit — LiquidStake v2 vault",
+    title: "Smart-contract security audit - LiquidStake v2 vault",
     client: "0x8E3F27b41c0A9d5E6f2B83c7D14a09E5B6f3C218",
     clientName: "liquidstake.eth",
     token: "0x0000000000000000000000000000000000068cDa",
@@ -223,7 +223,7 @@ export const DEMO_JOBS: Job[] = [
   },
   {
     jobId: "147",
-    title: "Market intelligence synthesis — L2 perp DEX order flow",
+    title: "Market intelligence synthesis - L2 perp DEX order flow",
     client: "0x5B2c96E1a4D07f83b6C2E15d9A04F7b3C8e1D296",
     clientName: "delphi-labs.eth",
     token: "0x0000000000000000000000000000000000068cDa",
@@ -258,7 +258,7 @@ export const DEMO_JOBS: Job[] = [
   },
   {
     jobId: "146",
-    title: "Autonomous branding kit — Nyx Protocol launch",
+    title: "Autonomous branding kit - Nyx Protocol launch",
     client: "0xA71c3E5D09b84f26a5C1D703e8B49F2a6C0D31E8",
     clientName: "nyx.eth",
     token: "0x0000000000000000000000000000000000068cDa",
@@ -294,7 +294,7 @@ export const DEMO_JOBS: Job[] = [
   },
   {
     jobId: "145",
-    title: "Solidity codegen — ERC-4626 adapter for HTS collateral",
+    title: "Solidity codegen - ERC-4626 adapter for HTS collateral",
     client: "0x2C8e91A3b05D74f16a9C3E027b5D48F1a7C6D390",
     clientName: null,
     token: "0x0000000000000000000000000000000000068cDa",
@@ -327,7 +327,7 @@ export const DEMO_JOBS: Job[] = [
   },
   {
     jobId: "144",
-    title: "Tokenomics stress simulation — 10k Monte-Carlo paths",
+    title: "Tokenomics stress simulation - 10k Monte-Carlo paths",
     client: "0xF35a17C90b2D486e1A7c3D50b9E24F8a6C1D073B",
     clientName: "aera.eth",
     token: "0x0000000000000000000000000000000000068cDa",
@@ -341,7 +341,7 @@ export const DEMO_JOBS: Job[] = [
   },
   {
     jobId: "143",
-    title: "Compliance narrative synthesis — MiCA disclosure pack",
+    title: "Compliance narrative synthesis - MiCA disclosure pack",
     client: "0x9A4c02E7b1D53f86a2C1E940b7D35F2a8C6D1047",
     clientName: null,
     token: "0x0000000000000000000000000000000000068cDa",
@@ -587,7 +587,7 @@ export const DEMO_SETTLEMENTS: SettlementRow[] = [
   },
 ];
 
-/** Seed frames for the HCS audit feed — shaped exactly like `readHcsMessages`. */
+/** Seed frames for the HCS audit feed - shaped exactly like `readHcsMessages`. */
 export const DEMO_HCS_MESSAGES: HcsMessage[] = [
   {
     sequenceNumber: "8912",

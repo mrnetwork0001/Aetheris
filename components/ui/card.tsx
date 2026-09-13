@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 type DivProps = React.HTMLAttributes<HTMLDivElement>;
 
 export interface CardProps extends DivProps {
-  /** Zero padding + clipped corners — for tables and lists that own their own gutters. */
+  /** Zero padding + clipped corners - for tables and lists that own their own gutters. */
   flush?: boolean;
-  /** Dashed hairline — for empty / placeholder surfaces. */
+  /** Dashed hairline - for empty / placeholder surfaces. */
   dashed?: boolean;
-  /** Ecosystem card recipe (#0d0d0d, 16px radius, −6px hover lift — DESIGN.md §9.8). */
+  /** Ecosystem card recipe (#0d0d0d, 16px radius, −6px hover lift - DESIGN.md §9.8). */
   eco?: boolean;
   /**
    * Force the light-card hover lift (−2px, soft shadow). Padded cards on light bands

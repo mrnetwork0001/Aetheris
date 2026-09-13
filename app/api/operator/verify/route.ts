@@ -22,8 +22,8 @@ import {
  *   1. Verifies the IDKit proof against the World ID cloud verifier (server-only).
  *   2. Relays `AetherisAgency.verifyOperator(signal, 0, nullifierHash, [0×8], ensName)`
  *      with the deployer key. World ID's on-chain router is not deployed on Hedera,
- *      so the contract runs in *announced* bypass mode — the Groth16 proof is not
- *      re-checked on-chain — but the REAL nullifier hash is burned, so a second
+ *      so the contract runs in *announced* bypass mode - the Groth16 proof is not
+ *      re-checked on-chain - but the REAL nullifier hash is burned, so a second
  *      proof from the same human reverts with `NullifierAlreadyUsed` (→ 409).
  *
  * Without `NEXT_PUBLIC_WORLD_ID_APP_ID` the route answers 503 and never pretends
@@ -44,7 +44,7 @@ const WORLD_ID_ENV_VARS = [
   "NEXT_PUBLIC_WORLD_ID_APP_ID  (app_… from developer.worldcoin.org → your app)",
   "NEXT_PUBLIC_WORLD_ID_ACTION  (action id under the app's Actions tab; default aetheris-operator)",
   "WORLD_ID_RP_ID               (relying-party id under the app's 'Relying party' settings)",
-  "WORLD_ID_RP_SIGNING_KEY      (relying-party signing key, same settings page — server-only)",
+  "WORLD_ID_RP_SIGNING_KEY      (relying-party signing key, same settings page - server-only)",
 ] as const;
 
 const AGENCY_ABI = [
@@ -219,7 +219,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return badRequest(`Unexpected field(s): ${unexpected.join(", ")}.`, "Body must be {result, signal, ensName?} or {proof, signal, ensName?}.");
   }
 
-  /* (a) World ID cloud verification — never pretend success. */
+  /* (a) World ID cloud verification - never pretend success. */
   const appId = optionalEnv("NEXT_PUBLIC_WORLD_ID_APP_ID");
   if (appId === "") {
     return apiError(
@@ -308,7 +308,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       return apiError(
         409,
         "NULLIFIER_ALREADY_USED",
-        "AetherisAgency reverted with NullifierAlreadyUsed — this human's nullifier was already burned on-chain.",
+        "AetherisAgency reverted with NullifierAlreadyUsed - this human's nullifier was already burned on-chain.",
         `nullifierHash ${nullifierHex}`,
       );
     }

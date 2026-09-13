@@ -1,4 +1,4 @@
-# 🌌 Aetheris — Autonomous DeAI Agency & Micro-Treasury Operating System
+# 🌌 Aetheris - Autonomous DeAI Agency & Micro-Treasury Operating System
 
 > Built for **ETHOnline 2026** by ETHGlobal  
 > **Target Bounties ($54,000 Total Focus):** Hedera ($15,000) + The Graph ($15,000) + World ID ($7,000) + 1inch ($7,000) + Privy ($5,000) + ENS ($5,000)  
@@ -40,11 +40,11 @@ ERC-20 path.
 
 Four jobs are indexed across every lifecycle state (Settled, Settled,
 Dispatched, Funded). Gross revenue 3.55, paid to sub-agents 2.16, retained
-margin 1.39 — reconciled independently by the subgraph from indexed events.
+margin 1.39 - reconciled independently by the subgraph from indexed events.
 
 ---
 
-## 📊 The Graph — why this subgraph is self-hosted
+## 📊 The Graph - why this subgraph is self-hosted
 
 **The Graph's hosted service does not support Hedera.** Hedera is absent from
 the network registry that ships with `graph-cli` and from the live
@@ -52,7 +52,7 @@ the network registry that ships with `graph-cli` and from the live
 Subgraph Studio's network selector offers neither Hedera mainnet nor testnet.
 
 Aetheris therefore runs a **self-hosted `graph-node` against the Hedera
-JSON-RPC relay** — the path [Hedera's own subgraph guide](https://docs.hedera.com/evm/tools/other/the-graph)
+JSON-RPC relay** - the path [Hedera's own subgraph guide](https://docs.hedera.com/evm/tools/other/the-graph)
 documents. `subgraph/docker-compose.yml` brings up the full stack.
 
 The subgraph itself is not a thin event log: **17 entities, 10 handlers**,
@@ -75,7 +75,7 @@ GraphQL endpoint: `http://localhost:8100/subgraphs/name/aetheris`
 
 > IPFS is published on host port **5101** and GraphQL on **8100** rather than
 > the defaults (5001, 8000), which are frequently occupied on a development
-> machine. The resulting failures are silent and misleading — `graph-cli`
+> machine. The resulting failures are silent and misleading - `graph-cli`
 > reports `Failed to upload to IPFS: Not Found` and queries return another
 > server's 404 body.
 
@@ -86,7 +86,7 @@ GraphQL endpoint: `http://localhost:8100/subgraphs/name/aetheris`
 ### Prerequisites
 - Node.js 18+
 - Docker (for the self-hosted subgraph)
-- A funded Hedera testnet **ECDSA** account — [portal.hedera.com/faucet](https://portal.hedera.com/faucet)
+- A funded Hedera testnet **ECDSA** account - [portal.hedera.com/faucet](https://portal.hedera.com/faucet)
   (ED25519 keys will not work: the EVM JSON-RPC relay requires ECDSA)
 
 ### 1. Install and configure
@@ -134,13 +134,13 @@ npm run dev                # http://localhost:3000
 ## 🧩 Integration status
 
 Every panel without a live backend is badged **DEMO DATA** in the UI with the
-missing variable named inline — nothing is presented as chain data that isn't.
+missing variable named inline - nothing is presented as chain data that isn't.
 
 | Integration | Status | Needs |
 | :--- | :--- | :--- |
-| **Hedera** EVM · HTS · HCS | Live — contracts deployed, HTS settlements on-chain | HCS anchoring needs `HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` |
-| **The Graph** | Live — self-hosted node, synced, no indexing errors | — |
-| **ENS** | Live — resolves against Ethereum mainnet | — |
+| **Hedera** EVM · HTS · HCS | Live - contracts deployed, HTS settlements on-chain | HCS anchoring needs `HEDERA_OPERATOR_ID` / `HEDERA_OPERATOR_KEY` |
+| **The Graph** | Live - self-hosted node, synced, no indexing errors | - |
+| **ENS** | Live - resolves against Ethereum mainnet | - |
 | **World ID** | Contract deploys in **explicit bypass mode** | `WORLD_ID_ROUTER_ADDRESS` for on-chain proofs, `NEXT_PUBLIC_WORLD_ID_APP_ID` for cloud verification |
 | **1inch** | Routes implemented, returns a typed 502 without a key | `ONEINCH_API_KEY` |
 | **Privy** | Configured, login not exercised | `NEXT_PUBLIC_PRIVY_APP_ID` |
@@ -153,7 +153,7 @@ mode that is **announced on-chain, never silent**: the constructor emits
 registration emits `OperatorVerifiedWithoutProof`.
 
 Only the zero-knowledge check is skipped. **Nullifier replay protection stays
-fully active** — a consumed nullifier is still burned and cannot be reused.
+fully active** - a consumed nullifier is still burned and cannot be reused.
 `setWorldId(router, groupId)` enables real verification without redeploying.
 
 ---

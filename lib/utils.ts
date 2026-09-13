@@ -76,12 +76,12 @@ export function isEvmAddress(value: unknown): value is `0x${string}` {
  * Format a Unix timestamp (seconds or milliseconds) as a locale date-time string.
  *
  * @param ts - Timestamp in seconds or milliseconds, as number or numeric string.
- * @returns Localized string, or `'—'` when the timestamp is unusable.
+ * @returns Localized string, or `'-'` when the timestamp is unusable.
  */
 export function formatTimestamp(ts: number | string): string {
   const n = typeof ts === 'number' ? ts : Number(ts);
-  if (!Number.isFinite(n) || n <= 0) return '—';
+  if (!Number.isFinite(n) || n <= 0) return '-';
   const ms = n > 1e12 ? n : n * 1000;
   const d = new Date(ms);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString();
 }

@@ -12,7 +12,7 @@ export interface LogoMarkProps {
 
 /**
  * Geometric mark: an accent ring with a solid core and a single notch that
- * reads as the "settlement path" leaving the ring. No gradients, no ids —
+ * reads as the "settlement path" leaving the ring. No gradients, no ids -
  * safe to render any number of times on one page.
  */
 export function LogoMark({ size = 28, light = false, className }: LogoMarkProps) {

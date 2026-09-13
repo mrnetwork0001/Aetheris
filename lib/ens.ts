@@ -19,7 +19,7 @@ import { publicEnv } from './env';
 /**
  * Public mainnet RPCs used as backups. Free endpoints go down (llamarpc was
  * returning HTTP 525 during development), and a dead RPC would silently erase
- * every ENS name from the UI — so `NEXT_PUBLIC_ENS_RPC_URL` is tried first and
+ * every ENS name from the UI - so `NEXT_PUBLIC_ENS_RPC_URL` is tried first and
  * viem's `fallback` transport rotates to these if it errors.
  */
 const ENS_RPC_FALLBACKS = [
@@ -33,7 +33,7 @@ let cachedClient: PublicClient | null = null;
 
 /**
  * Lazily build (and memoize) the mainnet client used for ENS lookups.
- * Built on first use — never at import time — so `next build` never needs an RPC URL.
+ * Built on first use - never at import time - so `next build` never needs an RPC URL.
  *
  * @returns A viem public client bound to Ethereum mainnet, with RPC failover.
  */
@@ -159,7 +159,7 @@ export async function getEnsIdentity(
 }
 
 /**
- * Log an ENS failure without ever escalating it — resolution is decorative,
+ * Log an ENS failure without ever escalating it - resolution is decorative,
  * so a broken RPC must degrade to "no ENS name" rather than an error boundary.
  */
 function logEnsFailure(fn: string, subject: string, error: unknown): void {

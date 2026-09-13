@@ -17,7 +17,7 @@ import {
 } from "../_lib/http";
 
 /**
- * /api/hcs — the Hedera Consensus Service audit log.
+ * /api/hcs - the Hedera Consensus Service audit log.
  *
  *   GET  ?topicId=0.0.x&limit=n   mirror of the topic (degrades to demo frames)
  *   POST { message }              anchors a new immutable audit entry
@@ -30,7 +30,7 @@ import {
  *   • it writes ONLY to the configured `HEDERA_HCS_TOPIC_ID` (a `topicId` in the
  *     body is accepted solely when it equals the configured one);
  *   • it accepts ONLY frames matching a fixed schema (`ProfitClaimed`), and the
- *     server re-composes the frame itself — client-supplied extra fields are
+ *     server re-composes the frame itself - client-supplied extra fields are
  *     dropped, so arbitrary text can never reach the topic;
  *   • the `operator` named in the frame must be a World ID-verified operator in
  *     AetherisAgency (`isVerifiedOperator`), and the frame's nullifier is taken
@@ -136,7 +136,7 @@ function parseClaimFrame(message: string): ClaimFrameInput | string {
   try {
     parsed = JSON.parse(message);
   } catch {
-    return "`message` must be a JSON object — free-form text is not anchored.";
+    return "`message` must be a JSON object - free-form text is not anchored.";
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return "`message` must be a JSON object.";
@@ -205,14 +205,14 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const topicId = requested ?? defaultTopicId();
   if (topicId === "") {
-    return demoPayload("", limit, "HEDERA_HCS_TOPIC_ID is not set — showing demo audit frames.");
+    return demoPayload("", limit, "HEDERA_HCS_TOPIC_ID is not set - showing demo audit frames.");
   }
 
   try {
     const { readHcsMessages } = await import("@/lib/hedera");
     const messages = await readHcsMessages(topicId, limit);
     if (messages.length === 0) {
-      return demoPayload(topicId, limit, "Topic has no messages yet — showing demo audit frames.");
+      return demoPayload(topicId, limit, "Topic has no messages yet - showing demo audit frames.");
     }
     return NextResponse.json<HcsReadResponse>({ topicId, source: "live", messages });
   } catch (error) {
@@ -224,7 +224,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 /* ── Write ────────────────────────────────────────────────────────────────── */
 
 export async function POST(request: Request): Promise<NextResponse> {
-  /* (1) Rate limit first — even malformed requests count, like /api/operator/verify. */
+  /* (1) Rate limit first - even malformed requests count, like /api/operator/verify. */
   const ip = clientIp(request);
   const limit = rateLimited(ip);
   if (limit.limited) {
@@ -264,7 +264,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return badRequest(`Unexpected field(s): ${unexpected.join(", ")}.`, "Body must be {message, topicId?}.");
   }
 
-  /* (3) Fixed frame schema — the server composes what actually gets anchored. */
+  /* (3) Fixed frame schema - the server composes what actually gets anchored. */
   const message = body.value.message;
   if (!isNonEmptyString(message, MAX_FRAME_BYTES)) {
     return badRequest(`\`message\` must be a non-empty string of at most ${MAX_FRAME_BYTES} characters.`);

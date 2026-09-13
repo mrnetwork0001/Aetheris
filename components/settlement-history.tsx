@@ -103,7 +103,7 @@ export function SettlementHistory({ settlements, source, reason }: SettlementHis
                       <span className="sr-only">(opens HashScan)</span>
                     </a>
                   ) : (
-                    <span className="font-mono text-[0.78rem] fg-3">—</span>
+                    <span className="font-mono text-[0.78rem] fg-3">-</span>
                   )}
                 </TD>
               </TR>

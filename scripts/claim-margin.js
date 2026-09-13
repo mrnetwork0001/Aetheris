@@ -1,5 +1,5 @@
 /**
- * claim-margin.js — perform ONE real treasury margin claim and make the HCS
+ * claim-margin.js - perform ONE real treasury margin claim and make the HCS
  * audit log truthful about it.
  *
  *   npx hardhat run scripts/claim-margin.js --network hederaTestnet
@@ -12,10 +12,10 @@
  *   2. Claim: read `treasury.retainedMargin(aUSD)` and call
  *      `claimProfit(aUSD, min(0.5 aUSD, available), deployer)` with gasLimit 1e6.
  *   3. Anchor AFTER the receipt: {evt:'ProfitClaimed', token, amount, to, tx,
- *      nullifierHash} — the chain is the source of truth, so anchor-after is the
+ *      nullifierHash} - the chain is the source of truth, so anchor-after is the
  *      correct ordering here (the frame quotes the tx hash it describes).
  *   4. Append-only correction: {evt:'Correction', voids:[seq…],
- *      reason:'test frame; no on-chain event', tx:null}. Nothing is deleted —
+ *      reason:'test frame; no on-chain event', tx:null}. Nothing is deleted -
  *      HCS is immutable; the reader (lib/hedera.ts readHcsMessages) honours
  *      Correction records by hiding voided sequence numbers while keeping the
  *      Correction itself visible.
@@ -59,8 +59,8 @@ async function listTopic() {
 
 /**
  * Sequence numbers of `ProfitClaimed` frames with no on-chain counterpart.
- * A frame is "backed" when it names a tx hash that emitted ProfitClaimed, or —
- * for frames without a tx — when an on-chain event with the same token+amount
+ * A frame is "backed" when it names a tx hash that emitted ProfitClaimed, or -
+ * for frames without a tx - when an on-chain event with the same token+amount
  * exists. Already-voided sequence numbers are excluded.
  */
 async function findFabricated(treasury, frames) {
@@ -156,7 +156,7 @@ async function main() {
     });
     log(`  HCS #${correction.sequenceNumber} @ ${correction.consensusTimestamp}  ${correction.message}`);
   } else {
-    rule("4 · no fabricated frames — no Correction needed");
+    rule("4 · no fabricated frames - no Correction needed");
   }
 
   rule("summary");

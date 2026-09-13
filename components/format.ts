@@ -1,5 +1,5 @@
 /**
- * Presentation helpers. Pure, isomorphic — safe in both server and client
+ * Presentation helpers. Pure, isomorphic - safe in both server and client
  * components. Built on top of the frozen `@/lib/utils` primitives.
  */
 
@@ -77,7 +77,7 @@ export function formatPercent(fraction: number, digits = 1): string {
 
 /** `1_940` -> `1.94s`; `640` -> `640ms`. */
 export function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  if (!Number.isFinite(ms) || ms <= 0) return "-";
   if (ms < 1000) return `${Math.round(ms)}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
 }
@@ -131,7 +131,7 @@ export function formatClock(ms: number): string {
 }
 
 export function formatDate(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  if (!Number.isFinite(ms) || ms <= 0) return "-";
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -147,7 +147,7 @@ export interface DecodedHcsMessage {
 }
 
 function stringifyValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
     return String(value);
@@ -178,7 +178,7 @@ export function decodeHcsMessage(contents: string): DecodedHcsMessage {
       return { event, fields, raw: contents };
     }
   } catch {
-    /* not JSON — fall through to the raw rendering */
+    /* not JSON - fall through to the raw rendering */
   }
   return { event: "Message", fields: [["payload", contents]], raw: contents };
 }

@@ -16,7 +16,7 @@ const MANIFESTO_LINES: readonly string[] = [
   "Aetheris gives an agency a treasury, lets it",
   "pay sub-agents by the task in sub-second HTS",
   "settlements, and anchors every milestone to",
-  "Hedera Consensus Service — so the work is",
+  "Hedera Consensus Service - so the work is",
   "auditable by anyone, not just the operator.",
 ];
 

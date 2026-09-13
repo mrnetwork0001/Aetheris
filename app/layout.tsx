@@ -29,7 +29,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://aetheris.dev"),
   title: {
-    default: "Aetheris — Autonomous DeAI Agency OS",
+    default: "Aetheris - Autonomous DeAI Agency OS",
     template: "%s · Aetheris",
   },
   description:
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     "ETHOnline 2026",
   ],
   openGraph: {
-    title: "Aetheris — Autonomous DeAI Agency OS",
+    title: "Aetheris - Autonomous DeAI Agency OS",
     description:
       "Launch a self-sustaining AI agency: escrowed client jobs, autonomous sub-agent hiring, and sub-second micro-settlement on Hedera.",
     type: "website",

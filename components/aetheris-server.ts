@@ -2,7 +2,7 @@
  * Server-side data loaders.
  *
  * IMPORTANT: this module is server-only. It is imported from React Server
- * Components and route handlers exclusively — never from a `"use client"` file.
+ * Components and route handlers exclusively - never from a `"use client"` file.
  *
  * Every `@/lib/*` integration is pulled in with a dynamic `await import()`
  * wrapped in try/catch. That keeps a missing env var (or a module that throws
@@ -31,7 +31,7 @@ import {
 } from "./aetheris-data";
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Narrowing helpers — the frozen subgraph API returns `unknown`, so every field
+   Narrowing helpers - the frozen subgraph API returns `unknown`, so every field
    is validated before it reaches a component. No `any`, anywhere.
    ──────────────────────────────────────────────────────────────────────────── */
 
@@ -142,7 +142,7 @@ function normalizeJob(value: unknown, index: number): Job {
     client: asString(r.client, "0x0000000000000000000000000000000000000000"),
     clientName: typeof r.clientName === "string" ? r.clientName : null,
     // `Job.token` is a Token entity ({ id }) in the deployed schema; a bare address
-    // string is still accepted. Symbol/decimals are NOT indexed — loadJobs reads
+    // string is still accepted. Symbol/decimals are NOT indexed - loadJobs reads
     // them from the token contract; until then "" / 0 (never a fixture label).
     token: entityAddress(r.token).toLowerCase() || ZERO_ADDRESS,
     tokenSymbol: asString(r.tokenSymbol, ""),
@@ -180,8 +180,8 @@ function normalizeSubAgent(value: unknown, index: number): SubAgentRow {
 /**
  * Shape a live subgraph payload into `AgencyStats`.
  *
- * Returns `null` when the payload carries no usable agency entity — `agency: null`
- * (the id is not an agency), or the id-only MINIMAL projection — so the caller can
+ * Returns `null` when the payload carries no usable agency entity - `agency: null`
+ * (the id is not an agency), or the id-only MINIMAL projection - so the caller can
  * fall back to demo data *badged as demo*. On the live path no field ever takes a
  * fixture value: anything the subgraph did not return is 0 / "" / "0" and the gap
  * is appended to `caveats`.
@@ -239,7 +239,7 @@ function resolveOperator(a: Record<string, unknown>): OperatorResolution {
       nullifierHash: null,
       verifiedAt: null,
       caveat:
-        "Operator not indexed by the subgraph — showing NEXT_PUBLIC_AETHERIS_OPERATOR_ADDRESS; World ID verification status unknown.",
+        "Operator not indexed by the subgraph - showing NEXT_PUBLIC_AETHERIS_OPERATOR_ADDRESS; World ID verification status unknown.",
     };
   }
   return {
@@ -248,7 +248,7 @@ function resolveOperator(a: Record<string, unknown>): OperatorResolution {
     nullifierHash: null,
     verifiedAt: null,
     caveat:
-      "Operator not indexed by the subgraph and NEXT_PUBLIC_AETHERIS_OPERATOR_ADDRESS is not set — operator unknown, not yet World ID-verified on-chain.",
+      "Operator not indexed by the subgraph and NEXT_PUBLIC_AETHERIS_OPERATOR_ADDRESS is not set - operator unknown, not yet World ID-verified on-chain.",
   };
 }
 
@@ -259,7 +259,7 @@ function normalizeStats(value: unknown, requestedId: string, caveats: string[]):
   // hand-rolled caller passing the entity directly still works.
   const a = "agency" in value ? value.agency : value;
   if (!isRecord(a)) return null;
-  // The MINIMAL projection only yields `id` — that is not stats.
+  // The MINIMAL projection only yields `id` - that is not stats.
   if (a.totalJobs === undefined && a.jobsSettled === undefined && a.netMargin === undefined) {
     return null;
   }
@@ -283,7 +283,7 @@ function normalizeStats(value: unknown, requestedId: string, caveats: string[]):
     operatorNullifierHash: operator.nullifierHash,
     operatorVerifiedAt: operator.verifiedAt,
     totalJobs,
-    // Not indexed directly — everything not yet settled is still in flight.
+    // Not indexed directly - everything not yet settled is still in flight.
     activeJobs: Math.max(totalJobs - settledJobs, 0),
     settledJobs,
     // Retained margin until loadAgencyStats overwrites it with on-chain holdings.
@@ -293,7 +293,7 @@ function normalizeStats(value: unknown, requestedId: string, caveats: string[]):
     // Raw indexer count; loadAgencyStats re-counts against the configured HCS
     // topic so anchors on topics the mirror node does not know are excluded.
     hcsMessageCount: asNumber(a.hcsAnchorCount ?? a.hcsMessageCount, 0),
-    // Not indexed — loadAgencyStats derives it from paid-task timings. Never the
+    // Not indexed - loadAgencyStats derives it from paid-task timings. Never the
     // demo fixture on a live read: an unknown value is reported as 0.
     avgFinalityMs: asNumber(a.avgFinalityMs, 0),
   };
@@ -308,7 +308,7 @@ export function isSubgraphConfigured(): boolean {
   return typeof url === "string" && url.trim().length > 0;
 }
 
-const NO_SUBGRAPH = "NEXT_PUBLIC_SUBGRAPH_URL is not set — subgraph is not deployed yet.";
+const NO_SUBGRAPH = "NEXT_PUBLIC_SUBGRAPH_URL is not set - subgraph is not deployed yet.";
 
 function describeError(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -326,7 +326,7 @@ export async function loadJobs(first = 12): Promise<DataEnvelope<Job[]>> {
     }
     // Label each job's funding token from the contract itself (symbol()/decimals(),
     // memoised in lib/treasury). A failed read leaves symbol "" / decimals 0 and is
-    // reported in the envelope error — never a literal fixture symbol.
+    // reported in the envelope error - never a literal fixture symbol.
     const caveats = await labelJobTokens(jobs);
     // Best effort: stamp each anchored task with whether its (topic, sequence)
     // actually exists on the Hedera mirror node. Failure leaves the field
@@ -416,7 +416,7 @@ export async function loadLeaderboard(first = 8): Promise<DataEnvelope<SubAgentR
     }
     // The SubAgent entity carries no latency field; derive it from paid tasks:
     // mean(paidAt - assignedAt) in seconds → ms. Agents with no paid task stay 0,
-    // which the UI renders as "—".
+    // which the UI renders as "-".
     const latency = averageSettlementMsByAgent(timings);
     for (const agent of agents) {
       agent.avgSettlementMs = latency.get(agent.address.toLowerCase()) ?? 0;
@@ -443,7 +443,7 @@ export async function loadAgencyStats(agency?: string): Promise<DataEnvelope<Age
       return {
         data: fallback,
         source: "demo",
-        error: `Subgraph has no agency entity for ${target} — showing demo fixtures.`,
+        error: `Subgraph has no agency entity for ${target} - showing demo fixtures.`,
       };
     }
 
@@ -454,11 +454,11 @@ export async function loadAgencyStats(agency?: string): Promise<DataEnvelope<Age
     const configuredTopic = hcsTopicId();
     if (anchorCount === null) {
       caveats.push(
-        `HCS anchors not returned by the subgraph — showing raw hcsAnchorCount (${stats.hcsMessageCount}), which may include anchors on unverifiable topics.`,
+        `HCS anchors not returned by the subgraph - showing raw hcsAnchorCount (${stats.hcsMessageCount}), which may include anchors on unverifiable topics.`,
       );
     } else if (configuredTopic === "") {
       stats.hcsMessageCount = anchorCount.total;
-      caveats.push("HEDERA_HCS_TOPIC_ID is not set — HCS anchor count is not filtered by topic.");
+      caveats.push("HEDERA_HCS_TOPIC_ID is not set - HCS anchor count is not filtered by topic.");
     } else {
       stats.hcsMessageCount = anchorCount.byTopic.get(configuredTopic) ?? 0;
       stats.hcsTopicId = configuredTopic;
@@ -477,7 +477,7 @@ export async function loadAgencyStats(agency?: string): Promise<DataEnvelope<Age
       const { getTaskTimings } = await import("@/lib/subgraph");
       const timings = await getTaskTimings();
       stats.avgFinalityMs = meanFinalityMs(timings);
-      if (timings.length === 0) caveats.push("No paid tasks yet — finality reads 0.");
+      if (timings.length === 0) caveats.push("No paid tasks yet - finality reads 0.");
     } catch (error) {
       stats.avgFinalityMs = 0;
       caveats.push(`Finality unavailable: ${describeError(error)}`);
@@ -486,7 +486,7 @@ export async function loadAgencyStats(agency?: string): Promise<DataEnvelope<Age
     // Treasury AUM = real on-chain holdings in micro-dollars; netMargin otherwise.
     const treasury = treasuryAddress();
     if (treasury === "") {
-      caveats.push("NEXT_PUBLIC_AETHERIS_TREASURY_ADDRESS is not set — treasury shows retained margin.");
+      caveats.push("NEXT_PUBLIC_AETHERIS_TREASURY_ADDRESS is not set - treasury shows retained margin.");
     } else {
       try {
         const { readTreasury } = await import("@/lib/treasury");
@@ -543,7 +543,7 @@ function describeOperatorVerification(input: {
 }): string {
   const { verified, bypassed, configured, relayable, relayDetail } = input;
   if (verified === null || verified === undefined) {
-    return "World ID status unknown — the operator is not indexed and the contract could not be read.";
+    return "World ID status unknown - the operator is not indexed and the contract could not be read.";
   }
   if (!verified) {
     return "Operator is NOT World ID-verified on-chain: no verifyOperator call has been recorded for this address.";
@@ -553,12 +553,12 @@ function describeOperatorVerification(input: {
   }
   const bypassClause =
     bypassed === true
-      ? "AetherisAgency.worldIdVerificationBypassed() is true — the contract has no World ID router on Hedera, so verifyOperator burned the nullifier WITHOUT checking a ZK proof."
+      ? "AetherisAgency.worldIdVerificationBypassed() is true - the contract has no World ID router on Hedera, so verifyOperator burned the nullifier WITHOUT checking a ZK proof."
       : "worldIdVerificationBypassed() could not be read, so whether a ZK proof was checked on-chain is unknown.";
   let sourceClause: string;
   if (relayable) {
     sourceClause =
-      "World ID app, action and relying party are live on this server, but the contract cannot attribute the nullifier to a relayed World ID proof versus the scripts/seed.js seed — treat it as unproven until a proof is relayed through /api/operator/verify.";
+      "World ID app, action and relying party are live on this server, but the contract cannot attribute the nullifier to a relayed World ID proof versus the scripts/seed.js seed - treat it as unproven until a proof is relayed through /api/operator/verify.";
   } else if (configured) {
     sourceClause = `World ID is partly configured but NOT yet able to relay a proof (${relayDetail || "readiness unknown"}), so no World ID proof has been relayed: this nullifier is the random one scripts/seed.js burned in bypass mode, not a proof of personhood.`;
   } else {
@@ -571,14 +571,14 @@ function describeOperatorVerification(input: {
 /**
  * Cross-check the subgraph's `Operator.verified` against the contract and attach
  * `worldIdBypassed` / `operatorVerificationNote`. Failures leave the subgraph value
- * in place and are reported in `caveats` — nothing is invented.
+ * in place and are reported in `caveats` - nothing is invented.
  */
 async function annotateOperatorVerification(stats: AgencyStats, caveats: string[]): Promise<void> {
   const { configured, relayable, detail: relayDetail } = await worldIdRelayability();
   stats.worldIdConfigured = configured;
   if (!configured) {
     caveats.push(
-      "World ID is not configured (NEXT_PUBLIC_WORLD_ID_APP_ID empty) — the human gate runs as a labelled simulation and the on-chain operator registration is a seed nullifier, not a World ID proof.",
+      "World ID is not configured (NEXT_PUBLIC_WORLD_ID_APP_ID empty) - the human gate runs as a labelled simulation and the on-chain operator registration is a seed nullifier, not a World ID proof.",
     );
   } else if (!relayable) {
     caveats.push(`World ID cannot relay a real proof yet: ${relayDetail}`);
@@ -603,13 +603,13 @@ async function annotateOperatorVerification(stats: AgencyStats, caveats: string[
 
     if (stats.operatorVerified !== null && stats.operatorVerified !== undefined && stats.operatorVerified !== chain.isVerified) {
       caveats.push(
-        `Subgraph says operator verified=${String(stats.operatorVerified)} but AetherisAgency.isVerifiedOperator returns ${String(chain.isVerified)} — showing the contract value.`,
+        `Subgraph says operator verified=${String(stats.operatorVerified)} but AetherisAgency.isVerifiedOperator returns ${String(chain.isVerified)} - showing the contract value.`,
       );
     }
     stats.operatorVerified = chain.isVerified;
 
     if (chain.nullifierHash !== null && stats.operatorNullifierHash !== null && stats.operatorNullifierHash !== undefined && stats.operatorNullifierHash !== chain.nullifierHash) {
-      caveats.push("Subgraph nullifier differs from AetherisAgency.operatorNullifier — showing the contract value.");
+      caveats.push("Subgraph nullifier differs from AetherisAgency.operatorNullifier - showing the contract value.");
     }
     stats.operatorNullifierHash = chain.nullifierHash ?? stats.operatorNullifierHash ?? null;
   } catch (error) {
@@ -738,7 +738,7 @@ export async function loadTreasury(): Promise<DataEnvelope<TreasuryHolding[]>> {
     return {
       data: DEMO_TREASURY,
       source: "demo",
-      error: "NEXT_PUBLIC_AETHERIS_TREASURY_ADDRESS is not set — no treasury to read.",
+      error: "NEXT_PUBLIC_AETHERIS_TREASURY_ADDRESS is not set - no treasury to read.",
     };
   }
   try {
@@ -765,12 +765,12 @@ export async function loadSettlements(): Promise<DataEnvelope<SettlementRow[]>> 
     if (raw.length === 0) {
       return { data: DEMO_SETTLEMENTS, source: "demo", error: "No settlements indexed yet." };
     }
-    // The MINIMAL projection yields only `id` — that is not a settlement history.
+    // The MINIMAL projection yields only `id` - that is not a settlement history.
     if (raw.every((r) => r.amount === undefined)) {
       return {
         data: DEMO_SETTLEMENTS,
         source: "demo",
-        error: "Subgraph rejected the settlements projection — showing demo fixtures.",
+        error: "Subgraph rejected the settlements projection - showing demo fixtures.",
       };
     }
 
@@ -837,14 +837,14 @@ function entityAddress(value: unknown): string {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Config bridges — read server-only constants and hand them to client
+   Config bridges - read server-only constants and hand them to client
    components as plain props, so no server module is ever bundled for the browser.
    ──────────────────────────────────────────────────────────────────────────── */
 
 export interface WorldIdConfig {
   appId: string;
   action: string;
-  /** App id + action are set (env presence only — see `relayable` for evidence). */
+  /** App id + action are set (env presence only - see `relayable` for evidence). */
   configured: boolean;
   /** WORLD_ID_RP_ID + WORLD_ID_RP_SIGNING_KEY present, so IDKit v4 can open. */
   rpConfigured?: boolean;
@@ -935,7 +935,7 @@ export async function loadHcsMessages(limit = 12): Promise<DataEnvelope<HcsMessa
     return {
       data: DEMO_HCS_MESSAGES.slice(0, limit),
       source: "demo",
-      error: "HEDERA_HCS_TOPIC_ID is not set — no live topic to mirror.",
+      error: "HEDERA_HCS_TOPIC_ID is not set - no live topic to mirror.",
     };
   }
   try {

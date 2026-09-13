@@ -104,7 +104,7 @@ function SponsorCard({ sponsor, decorative = false }: { sponsor: Sponsor; decora
       <Card eco className="flex h-full flex-col p-6">
         <span className="card-logo grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[12px] bg-fl-raised ring-1 ring-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={sponsor.logo} alt="" width={44} height={44} className="h-11 w-11 object-cover" loading="lazy" decoding="async" />
+                <img src={sponsor.logo} alt="" width={44} height={44} className="h-11 w-11 object-cover" decoding="async" />
               </span>
         <h3 className="mt-5 font-display text-[1.1rem] font-bold text-fl-fg">{sponsor.name}</h3>
         <p className="mono-label mt-1">{sponsor.role}</p>

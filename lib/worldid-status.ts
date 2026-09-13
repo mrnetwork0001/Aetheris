@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  SERVER-ONLY MODULE — World ID readiness probe.
+ *  SERVER-ONLY MODULE - World ID readiness probe.
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Answers, from evidence rather than env-var presence, whether this server can
@@ -20,7 +20,7 @@
 import { assertServerOnly, optionalEnv } from './env';
 
 export type WorldIdActionStatus =
-  /** App and action both exist — a genuine proof would be verified. */
+  /** App and action both exist - a genuine proof would be verified. */
   | 'ok'
   /** App exists but the action id is not registered in the Developer Portal. */
   | 'action-missing'
@@ -64,7 +64,7 @@ async function probeAction(
 ): Promise<{ status: WorldIdActionStatus; detail: string }> {
   const base = optionalEnv('WORLD_ID_API_BASE', DEFAULT_API_BASE).replace(/\/+$/, '');
   // World ID 4.0: actions are scoped to the relying party, so probe the v4 verifier.
-  // Without an RP id we cannot ask v4 anything meaningful — report that instead.
+  // Without an RP id we cannot ask v4 anything meaningful - report that instead.
   const rpId = optionalEnv('WORLD_ID_RP_ID');
   const url = rpId
     ? `${base}/api/v4/verify/${encodeURIComponent(rpId)}`
@@ -124,7 +124,7 @@ async function probeAction(
     if (code === 'invalid_action' || /action not found/i.test(body.detail ?? '')) {
       return {
         status: 'action-missing',
-        detail: `World ID app ${appId} exists, but action "${action}" is not registered in the Developer Portal (verifier: "${body.detail ?? code}"). Create it under the app's Actions tab — until then every proof is rejected and no operator can be relayed on-chain.`,
+        detail: `World ID app ${appId} exists, but action "${action}" is not registered in the Developer Portal (verifier: "${body.detail ?? code}"). Create it under the app's Actions tab - until then every proof is rejected and no operator can be relayed on-chain.`,
       };
     }
     if (response.status >= 400 && response.status < 500) {
@@ -147,7 +147,7 @@ async function probeAction(
 
 /**
  * Probe (cached 60 s) whether a real World ID proof could be verified and relayed.
- * Never throws — an unreachable verifier is reported as `actionStatus: 'unknown'`.
+ * Never throws - an unreachable verifier is reported as `actionStatus: 'unknown'`.
  */
 export async function probeWorldIdReadiness(): Promise<WorldIdReadiness> {
   assertServerOnly('lib/worldid-status.ts#probeWorldIdReadiness');
@@ -166,7 +166,7 @@ export async function probeWorldIdReadiness(): Promise<WorldIdReadiness> {
   let detail: string;
   if (!appIdValid) {
     actionStatus = 'unconfigured';
-    detail = 'NEXT_PUBLIC_WORLD_ID_APP_ID is empty or malformed — World ID proofs cannot be verified on this server.';
+    detail = 'NEXT_PUBLIC_WORLD_ID_APP_ID is empty or malformed - World ID proofs cannot be verified on this server.';
   } else {
     ({ status: actionStatus, detail } = await probeAction(appId, action));
   }

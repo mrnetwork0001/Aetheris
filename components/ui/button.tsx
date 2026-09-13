@@ -68,7 +68,7 @@ function Spinner() {
 }
 
 /**
- * The one button. Pass `href` to render a link with identical styling —
+ * The one button. Pass `href` to render a link with identical styling -
  * internal paths go through `next/link`, absolute URLs render a plain anchor.
  * The ref is forwarded only for the native `<button>` form.
  */

@@ -2,7 +2,7 @@
 @tailwind components;
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Aetheris — design tokens (DESIGN.md §1)
+   Aetheris - design tokens (DESIGN.md §1)
    ──────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
@@ -21,7 +21,7 @@
     --fl-fg: #ffffff;
     --fl-fg-2: #999999;
     --fl-fg-3: #666666;
-    /* fg-3 lifted to 4.6:1+ on every dark surface — used wherever fg-3 colours readable text. */
+    /* fg-3 lifted to 4.6:1+ on every dark surface - used wherever fg-3 colours readable text. */
     --fl-fg-3-text: #7d7d7d;
 
     /* Light sections */
@@ -36,7 +36,7 @@
     --fl-accent: #079ab7;
     --fl-accent-soft: #079ab71f;
     --fl-accent-hover: #06869e;
-    --fl-accent-ink: #047a91; /* 5.0:1 against white — small accent text / filled accent buttons */
+    --fl-accent-ink: #047a91; /* 5.0:1 against white - small accent text / filled accent buttons */
     --fl-warn: #f59e0b;
     --fl-warn-soft: #f59e0b1f;
     --fl-emerald: #10b981;
@@ -53,7 +53,7 @@
     --band-pad-y: 150px;
     --band-pad-x: 60px;
 
-    /* Font stacks — `next/font` injects the --font-* vars on <html>. */
+    /* Font stacks - `next/font` injects the --font-* vars on <html>. */
     --font-display-stack: var(--font-montserrat), ui-sans-serif, system-ui, -apple-system,
       "Segoe UI", Roboto, sans-serif;
     --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -435,7 +435,7 @@
   color: var(--c-rose-ink);
   border-color: #ef444440;
 }
-/* "white-on-raised" — used for Settled */
+/* "white-on-raised" - used for Settled */
 .fl-pill--solid {
   background: var(--c-raised);
   color: var(--c-fg);
@@ -616,7 +616,7 @@
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Motion — §9 (DESIGN.md, FROZEN)
+   Motion - §9 (DESIGN.md, FROZEN)
    Pure CSS; framer-motion handles Reveal / WipeText. Every keyframe below is paired
    with a `prefers-reduced-motion: reduce` rule that sets `animation: none`, and no
    rule here ever changes the opacity of real content.
@@ -843,7 +843,7 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 16px #ffffff1a;
   }
-  /* A white glow is invisible on a white band — same geometry, ink-coloured. */
+  /* A white glow is invisible on a white band - same geometry, ink-coloured. */
   .band--light .btn-primary:hover,
   .on-light .btn-primary:hover {
     box-shadow: 0 4px 16px #0000001f;

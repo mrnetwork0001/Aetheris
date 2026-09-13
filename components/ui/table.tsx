@@ -43,7 +43,7 @@ const ALIGN: Record<Align, string> = {
 
 export interface CellProps {
   align?: Align;
-  /** JetBrains Mono, tabular numerals — for amounts, sequence numbers, hashes. */
+  /** JetBrains Mono, tabular numerals - for amounts, sequence numbers, hashes. */
   mono?: boolean;
 }
 

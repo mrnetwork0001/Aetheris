@@ -13,9 +13,9 @@ export interface RevealProps {
 }
 
 /**
- * `idle`   — SSR / pre-arm: rendered fully visible, no animation.
- * `hidden` — armed and off-screen: waits for the viewport to reach it.
- * `shown`  — revealed (or never needed hiding). Terminal; never goes back.
+ * `idle`   - SSR / pre-arm: rendered fully visible, no animation.
+ * `hidden` - armed and off-screen: waits for the viewport to reach it.
+ * `shown`  - revealed (or never needed hiding). Terminal; never goes back.
  */
 type Phase = "idle" | "hidden" | "shown";
 
@@ -37,9 +37,9 @@ function isOnScreen(el: HTMLElement): boolean {
  * (`initial={false}`, phase `idle`). On mount the element is measured inside
  * a `requestAnimationFrame`: if it is already on screen it is marked `shown`
  * and never hides (above-the-fold content never flickers); otherwise it hides
- * instantly and reveals on entry. Two independent triggers reveal it —
+ * instantly and reveals on entry. Two independent triggers reveal it -
  * framer's `useInView` (IntersectionObserver) and a passive, rAF-throttled
- * scroll/resize rect check — and whichever fires first wins. `shown` is
+ * scroll/resize rect check - and whichever fires first wins. `shown` is
  * terminal, so no later measurement can hide real content again.
  */
 export function Reveal({ children, className, delay = 0 }: RevealProps) {

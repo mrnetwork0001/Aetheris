@@ -15,7 +15,7 @@ import { Pill } from "./ui/pill";
  * World ID proof-of-personhood gate.
  *
  * Coded against the *installed* IDKit (v4.2.3), whose API is `IDKitRequestWidget`
- * + presets + a server-signed `rp_context` — not the older `IDKitWidget`.
+ * + presets + a server-signed `rp_context` - not the older `IDKitWidget`.
  * We request the World ID 4.0 `ProofOfHuman` preset; the raw result is relayed as-is (the
  * frozen `lib/worldid.verifyWorldIdProof` verifies the World ID 3.0 proof
  * envelope (`merkle_root` / `nullifier_hash` / `proof` / `verification_level`).
@@ -135,7 +135,7 @@ export interface WorldIdGateProps {
   appId: string;
   /** From `lib/worldid.WORLD_ID_ACTION`. */
   action: string;
-  /** The value committed to inside the proof — typically the operator address. */
+  /** The value committed to inside the proof - typically the operator address. */
   signal: string;
   /** ENS name published alongside the on-chain verification (defaults to aetheris.eth server-side). */
   ensName?: string;
@@ -208,7 +208,7 @@ export function WorldIdGate({
         txHash: null,
         hashscan: null,
         onChain: "simulated",
-        onChainDetail: "Nothing was sent to AetherisAgency — this is a labelled simulation.",
+        onChainDetail: "Nothing was sent to AetherisAgency - this is a labelled simulation.",
       });
     }, 900);
   }
@@ -355,7 +355,7 @@ export function WorldIdGate({
           {verification.onChain === "already-used" ? (
             <p className="mt-1 text-[0.72rem] leading-relaxed text-amber-200/85">
               {verification.onChainDetail ??
-                "This nullifier was already burned in AetherisAgency — the same human cannot register twice."}
+                "This nullifier was already burned in AetherisAgency - the same human cannot register twice."}
             </p>
           ) : null}
         </div>

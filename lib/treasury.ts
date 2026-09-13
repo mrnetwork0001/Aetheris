@@ -1,5 +1,5 @@
 /**
- * Aetheris treasury — live on-chain holdings for `AetherisTreasury.sol`.
+ * Aetheris treasury - live on-chain holdings for `AetherisTreasury.sol`.
  *
  * **Server-only.** Reads ERC-20 / HTS-facade balances over the Hedera JSON-RPC
  * relay and prices them honestly:
@@ -11,7 +11,7 @@
  * weight (drift reads 0) rather than inventing a target.
  *
  * Hashio rejects `eth_getLogs` inside JSON-RPC batches, so the provider is built
- * with `batchMaxCount: 1` — every call goes out as its own request.
+ * with `batchMaxCount: 1` - every call goes out as its own request.
  */
 
 import { ethers } from 'ethers';
@@ -156,7 +156,7 @@ export async function readTreasury(treasury: string): Promise<TreasuryReadResult
   const rpc = getTreasuryProvider();
   const warnings: string[] = [];
 
-  // Token discovery degrades to [] on subgraph trouble — we still report HBAR.
+  // Token discovery degrades to [] on subgraph trouble - we still report HBAR.
   const tokens = await getTreasuryTokens();
   if (tokens.length === 0) {
     warnings.push('Subgraph returned no funded tokens; showing native HBAR only.');
@@ -200,7 +200,7 @@ export async function readTreasury(treasury: string): Promise<TreasuryReadResult
         warnings.push(`${symbolRaw} (${address}) has no price source; valued at $0.`);
       }
     } catch (cause) {
-      const reason = `Token ${address} skipped — ERC-20 call reverted: ${describe(cause)}`;
+      const reason = `Token ${address} skipped - ERC-20 call reverted: ${describe(cause)}`;
       console.warn(`[aetheris:treasury] ${reason}`);
       warnings.push(reason);
     }

@@ -1,14 +1,14 @@
 /**
  * Privy configuration for Aetheris operator onboarding (@privy-io/react-auth v3).
  *
- * This module exports **configuration only** — no React components. The frontend
+ * This module exports **configuration only** - no React components. The frontend
  * owns `<PrivyProvider appId={privyAppId} config={privyConfig}>`.
  *
  * Bounty-relevant choices:
  *  • `passkey` is a first-class login method (zero-friction, no-seed-phrase onboarding).
  *  • Embedded wallets are created automatically on login for users without one,
  *    so a non-crypto enterprise client gets a self-custodial wallet by signing in.
- *  • Hedera Testnet (296) is the default chain — Aetheris settles there — with the
+ *  • Hedera Testnet (296) is the default chain - Aetheris settles there - with the
  *    1inch rebalancing venues listed as additional supported chains.
  *
  * `NEXT_PUBLIC_PRIVY_APP_ID` is public by design (Privy's app id is not a secret);

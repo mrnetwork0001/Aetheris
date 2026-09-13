@@ -1,5 +1,5 @@
 /**
- * Aetheris — typed environment access.
+ * Aetheris - typed environment access.
  *
  * Design rules enforced here:
  *  1. No environment variable is ever read at module-import time in a way that
@@ -40,7 +40,7 @@ export class ServerOnlyViolationError extends Error {
 
 /**
  * Read a server-side environment variable, throwing a named error if absent.
- * Never call this at module scope — only inside request-time functions.
+ * Never call this at module scope - only inside request-time functions.
  *
  * @param name - Process environment key (e.g. `ONEINCH_API_KEY`).
  * @param hint - Optional extra guidance appended to the error message.
@@ -82,7 +82,7 @@ export function assertServerOnly(moduleName: string): void {
  * because each is a literal `process.env.NEXT_PUBLIC_*` access.
  *
  * Missing values fall back to safe defaults or empty strings so that importing this
- * module can never throw — callers that truly require a value should check for `''`.
+ * module can never throw - callers that truly require a value should check for `''`.
  */
 export const publicEnv = {
   worldIdAppId: process.env.NEXT_PUBLIC_WORLD_ID_APP_ID ?? '',
