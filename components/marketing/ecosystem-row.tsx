@@ -15,6 +15,8 @@ type Status = "integrated" | "needs-key";
 
 interface Sponsor {
   name: string;
+  /** Partner mark under /public/partners, rendered as a rounded tile. */
+  logo: string;
   role: string;
   glyph: string;
   tone: string;
@@ -27,6 +29,7 @@ interface Sponsor {
 const SPONSORS: readonly Sponsor[] = [
   {
     name: "Hedera",
+    logo: "/partners/hedera.png",
     role: "EVM · HTS · HCS",
     glyph: "ℏ",
     tone: "text-fl-fg",
@@ -35,6 +38,7 @@ const SPONSORS: readonly Sponsor[] = [
   },
   {
     name: "The Graph",
+    logo: "/partners/thegraph.png",
     role: "Self-hosted subgraph",
     glyph: "◍",
     tone: "text-[#a78bfa]",
@@ -43,6 +47,7 @@ const SPONSORS: readonly Sponsor[] = [
   },
   {
     name: "World ID",
+    logo: "/partners/worldid.png",
     role: "Proof of personhood",
     glyph: "◎",
     tone: "text-fl-fg",
@@ -52,6 +57,7 @@ const SPONSORS: readonly Sponsor[] = [
   },
   {
     name: "1inch",
+    logo: "/partners/oneinch.png",
     role: "Swap API v6.0",
     glyph: "⟁",
     tone: "text-[#f87171]",
@@ -61,6 +67,7 @@ const SPONSORS: readonly Sponsor[] = [
   },
   {
     name: "Privy",
+    logo: "/partners/privy.png",
     role: "Embedded passkey wallets",
     glyph: "◈",
     tone: "text-[#c4b5fd]",
@@ -70,6 +77,7 @@ const SPONSORS: readonly Sponsor[] = [
   },
   {
     name: "ENS",
+    logo: "/partners/ens.png",
     role: "Agent identity",
     glyph: "⬡",
     tone: "text-[#7dd3fc]",
@@ -94,12 +102,10 @@ function SponsorCard({ sponsor, decorative = false }: { sponsor: Sponsor; decora
       className="w-[280px] shrink-0 md:w-[320px]"
     >
       <Card eco className="flex h-full flex-col p-6">
-        <span
-          aria-hidden="true"
-          className={`card-logo inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-fl-borderHi bg-fl-raised text-[1.25rem] font-bold ${sponsor.tone}`}
-        >
-          {sponsor.glyph}
-        </span>
+        <span className="card-logo grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[12px] bg-fl-raised ring-1 ring-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sponsor.logo} alt="" width={44} height={44} className="h-11 w-11 object-cover" loading="lazy" decoding="async" />
+              </span>
         <h3 className="mt-5 font-display text-[1.1rem] font-bold text-fl-fg">{sponsor.name}</h3>
         <p className="mono-label mt-1">{sponsor.role}</p>
         <p className="mt-3 flex-1 text-[0.88rem] leading-[1.6] text-fl-fg2">{sponsor.body}</p>

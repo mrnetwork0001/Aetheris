@@ -16,6 +16,7 @@ import {
 interface FooterLink {
   label: string;
   href: string;
+  icon?: string;
   external?: boolean;
 }
 
@@ -31,12 +32,12 @@ const COLUMNS: ReadonlyArray<{ heading: string; links: readonly FooterLink[] }> 
   {
     heading: "Ecosystem",
     links: [
-      { label: "Hedera", href: "https://hedera.com", external: true },
-      { label: "The Graph", href: "https://thegraph.com", external: true },
-      { label: "World ID", href: "https://world.org/world-id", external: true },
-      { label: "1inch", href: "https://1inch.io", external: true },
-      { label: "Privy", href: "https://privy.io", external: true },
-      { label: "ENS", href: "https://ens.domains", external: true },
+      { label: "Hedera", icon: "/partners/hedera.png", href: "https://hedera.com", external: true },
+      { label: "The Graph", icon: "/partners/thegraph.png", href: "https://thegraph.com", external: true },
+      { label: "World ID", icon: "/partners/worldid.png", href: "https://world.org/world-id", external: true },
+      { label: "1inch", icon: "/partners/oneinch.png", href: "https://1inch.io", external: true },
+      { label: "Privy", icon: "/partners/privy.png", href: "https://privy.io", external: true },
+      { label: "ENS", icon: "/partners/ens.png", href: "https://ens.domains", external: true },
     ],
   },
   {
@@ -113,6 +114,10 @@ export function Footer() {
                       rel={link.external ? "noreferrer noopener" : undefined}
                       className="text-[0.88rem] text-fl-fg2 transition-colors hover:text-fl-fg"
                     >
+                      {link.icon ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={link.icon} alt="" width={16} height={16} className="mr-2 inline-block h-4 w-4 rounded-[4px] align-[-3px] object-cover" loading="lazy" />
+                      ) : null}
                       {link.label}
                     </a>
                   </li>
