@@ -67,6 +67,16 @@ export interface TreasuryPanelProps {
  * 1inch quote form) and `#operator` (World ID gate + margin sweep) - because
  * the verification result that unlocks the sweep is state owned here.
  */
+const REFERENCE_ASSETS: TreasuryHolding[] = [
+  { symbol: "WETH", name: "Wrapped Ether", address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", chainId: 42161, chainName: "Arbitrum", decimals: 18, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "USDC", name: "USD Coin", address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", chainId: 42161, chainName: "Arbitrum", decimals: 6, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "USDT", name: "Tether USD", address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", chainId: 42161, chainName: "Arbitrum", decimals: 6, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "WETH", name: "Wrapped Ether", address: "0x4200000000000000000000000000000000000006", chainId: 8453, chainName: "Base", decimals: 18, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "USDC", name: "USD Coin", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chainId: 8453, chainName: "Base", decimals: 6, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "WETH", name: "Wrapped Ether", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", chainId: 1, chainName: "Ethereum", decimals: 18, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+  { symbol: "USDC", name: "USD Coin", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chainId: 1, chainName: "Ethereum", decimals: 6, amountRaw: "0", usdValue: 0, targetWeight: 0 },
+];
+
 export function TreasuryPanel({
   holdings,
   source,
@@ -84,9 +94,17 @@ export function TreasuryPanel({
   );
 
   /** Only same-chain pairs on a 1inch-supported chain can be routed. */
-  const routable = React.useMemo(
+  const routableHoldings = React.useMemo(
     () => holdings.filter((holding) => swapChainIds.has(holding.chainId)),
     [holdings, swapChainIds],
+  );
+  // The treasury settles on Hedera, which 1inch does not serve. So a live quote is
+  // always reachable, fall back to reference assets on supported chains: the
+  // operator's own EVM wallet is what would sign such a swap.
+  const usingReference = routableHoldings.length === 0;
+  const routable = React.useMemo(
+    () => (usingReference ? REFERENCE_ASSETS.filter((a) => swapChainIds.has(a.chainId)) : routableHoldings),
+    [usingReference, routableHoldings, swapChainIds],
   );
 
   const [srcKey, setSrcKey] = React.useState<string>(() => {
@@ -277,6 +295,12 @@ export function TreasuryPanel({
               <Pill tone="off">{swapChains.length} chains routable</Pill>
             </div>
 
+            {usingReference ? (
+              <p className="mt-3 rounded-[10px] border border-fl-border bg-fl-raised px-3 py-2.5 text-xs leading-relaxed fg-2">
+                Treasury holdings settle on Hedera, which 1inch does not serve. Quotes below route
+                reference assets on supported EVM chains - what the operator's own wallet would sign.
+              </p>
+            ) : null}
             {src === null || dst === null ? (
               <p className="mt-3 rounded-[10px] border border-fl-border bg-fl-raised px-3 py-2.5 text-xs leading-relaxed fg-2">
                 No same-chain pair is available on a 1inch-supported network. Hedera balances
