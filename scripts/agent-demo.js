@@ -61,17 +61,27 @@ function argValue(flag, fallback) {
  * honour indexed-topic filters reliably, so the event is fetched unfiltered in
  * 1000-block chunks and matched in JS.
  */
-async function findTaskCompleted(agency, jobId, taskId, fromBlock) {
-  const latest = await agency.runner.provider.getBlockNumber();
-  let found = null;
-  for (let start = Math.max(0, fromBlock); start <= latest; start += 1000) {
-    const end = Math.min(latest, start + 999);
-    const events = await agency.queryFilter("TaskCompleted", start, end);
-    for (const ev of events) {
-      if (ev.args.jobId === jobId && ev.args.taskId === taskId) found = ev;
+async function findTaskCompleted(agency, jobId, taskId, fromBlock, { attempts = 9, delayMs = 10_000 } = {}) {
+  // Hashio's log index trails the head by several seconds: getTask can already report
+  // Completed while eth_getLogs does not yet return the event. Retry with a fresh
+  // head each time instead of failing on the first empty scan.
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const latest = await agency.runner.provider.getBlockNumber();
+    let found = null;
+    for (let start = Math.max(0, fromBlock); start <= latest; start += 1000) {
+      const end = Math.min(latest, start + 999);
+      const events = await agency.queryFilter("TaskCompleted", start, end);
+      for (const ev of events) {
+        if (ev.args.jobId === jobId && ev.args.taskId === taskId) found = ev;
+      }
+    }
+    if (found) return found;
+    if (attempt < attempts) {
+      log(`  TaskCompleted not in the log index yet (head ${latest}); retrying in ${delayMs / 1000}s`);
+      await sleep(delayMs);
     }
   }
-  return found;
+  return null;
 }
 
 function parseLogs(iface, logs, name) {
