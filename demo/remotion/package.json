@@ -1,0 +1,28 @@
+{
+  "name": "aetheris-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Aetheris out/aetheris-demo.mp4 --browser-executable \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --codec h264 --crf 12 --pixel-format yuv420p --color-space bt709",
+    "prerender": "node sync-clips.js && node fetch-stats.js && node check-timing.js",
+    "prestudio": "node sync-clips.js",
+    "clips": "node sync-clips.js",
+    "stats": "node fetch-stats.js",
+    "render:1440": "remotion render src/index.ts Aetheris out/aetheris-demo-1440.mp4 --browser-executable \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --codec h264 --crf 15 --pixel-format yuv420p --color-space bt709 --scale=1.5",
+    "render:4k": "remotion render src/index.ts Aetheris out/aetheris-demo-4k.mp4 --browser-executable \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --codec h264 --crf 17 --pixel-format yuv420p --color-space bt709 --scale=2",
+    "prerender:1440": "node sync-clips.js && node fetch-stats.js && node check-timing.js",
+    "prerender:4k": "node sync-clips.js && node fetch-stats.js && node check-timing.js",
+    "check": "node check-timing.js"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.376",
+    "@remotion/google-fonts": "^4.0.376",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.376"
+  },
+  "devDependencies": {
+    "playwright": "1.58"
+  }
+}
