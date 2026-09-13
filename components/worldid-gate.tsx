@@ -3,7 +3,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, BadgeCheck, ScanFace, ShieldCheck } from "lucide-react";
+import { AlertTriangle, BadgeCheck, ExternalLink, ScanFace, ShieldCheck } from "lucide-react";
 
 import type { WorldIdProof } from "@/lib/worldid";
 import { cn } from "@/lib/utils";
@@ -16,13 +16,19 @@ import { Button } from "./ui/button";
  *
  * Coded against the *installed* IDKit (v4.2.3), whose API is `IDKitRequestWidget`
  * + presets + a server-signed `rp_context` — not the older `IDKitWidget`.
- * We request the `orbLegacy` preset with `allow_legacy_proofs`, because the
+ * We request the World ID 4.0 `ProofOfHuman` preset; the raw result is relayed as-is (the
  * frozen `lib/worldid.verifyWorldIdProof` verifies the World ID 3.0 proof
  * envelope (`merkle_root` / `nullifier_hash` / `proof` / `verification_level`).
  *
  * The widget is loaded with `ssr: false` so its wasm bundle never runs during
  * server rendering, and the whole flow degrades to a labelled simulation when
  * the relying-party credentials are absent.
+ *
+ * Once `/api/verify-worldid` accepts the proof, the gate POSTs it to
+ * `/api/operator/verify`, which relays `AetherisAgency.verifyOperator` on Hedera
+ * with the deployer key and burns the real nullifier hash. The resulting
+ * HashScan link is rendered; a 503 surfaces the exact configuration needed and a
+ * 409 explains that this human's nullifier was already burned on-chain.
  */
 
 type RpContext = {
@@ -32,6 +38,8 @@ type RpContext = {
   expires_at: number;
   signature: string;
 };
+
+import { proofOfHuman } from "@worldcoin/idkit";
 
 const IDKitRequestWidget = dynamic(
   () => import("@worldcoin/idkit").then((mod) => mod.IDKitRequestWidget),
@@ -73,10 +81,53 @@ function toWorldIdProof(result: unknown): WorldIdProof | null {
   };
 }
 
+/** How the verification reached (or failed to reach) the AetherisAgency contract. */
+export type OnChainStatus = "relayed" | "already-used" | "simulated";
+
 export interface VerificationResult {
   nullifierHash: string;
   verificationLevel: string;
   simulated: boolean;
+  /** Hedera tx hash of the relayed `verifyOperator` call (null when not relayed). */
+  txHash?: string | null;
+  /** HashScan URL for `txHash`. */
+  hashscan?: string | null;
+  onChain?: OnChainStatus;
+  /** Human-readable note about the on-chain leg (e.g. the 409 explanation). */
+  onChainDetail?: string | null;
+}
+
+/** Success body of POST /api/operator/verify. */
+type OperatorVerifyResponse = {
+  ok: true;
+  txHash: string;
+  nullifierHash: string;
+  hashscan: string;
+  worldIdBypassed: boolean;
+};
+
+type RelayNotice = {
+  kind: "config" | "nullifier" | "error";
+  title: string;
+  detail: string;
+};
+
+/** Pulls `{error:{code,message,details}}` apart without assuming the body is JSON. */
+async function readApiErrorParts(
+  response: Response,
+): Promise<{ code: string; message: string; details: string }> {
+  try {
+    const body = (await response.clone().json()) as {
+      error?: { code?: unknown; message?: unknown; details?: unknown };
+    };
+    return {
+      code: typeof body.error?.code === "string" ? body.error.code : `HTTP_${response.status}`,
+      message: typeof body.error?.message === "string" ? body.error.message : "",
+      details: typeof body.error?.details === "string" ? body.error.details : "",
+    };
+  } catch {
+    return { code: `HTTP_${response.status}`, message: await readApiError(response), details: "" };
+  }
 }
 
 export interface WorldIdGateProps {
@@ -86,6 +137,8 @@ export interface WorldIdGateProps {
   action: string;
   /** The value committed to inside the proof — typically the operator address. */
   signal: string;
+  /** ENS name published alongside the on-chain verification (defaults to aetheris.eth server-side). */
+  ensName?: string;
   verification: VerificationResult | null;
   onVerified: (result: VerificationResult) => void;
   onReset?: () => void;
@@ -98,6 +151,7 @@ export function WorldIdGate({
   appId,
   action,
   signal,
+  ensName,
   verification,
   onVerified,
   onReset,
@@ -107,11 +161,13 @@ export function WorldIdGate({
   const [message, setMessage] = React.useState<string | null>(null);
   const [rpContext, setRpContext] = React.useState<RpContext | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [relayNotice, setRelayNotice] = React.useState<RelayNotice | null>(null);
 
   const appIdValid = /^app_[a-zA-Z0-9_]+$/.test(appId);
 
   async function beginVerification() {
     setMessage(null);
+    setRelayNotice(null);
 
     if (!appIdValid) {
       simulate("NEXT_PUBLIC_WORLD_ID_APP_ID is not set.");
@@ -149,32 +205,112 @@ export function WorldIdGate({
         nullifierHash: `0x${"2b1d".repeat(8)}c904`,
         verificationLevel: "orb",
         simulated: true,
+        txHash: null,
+        hashscan: null,
+        onChain: "simulated",
+        onChainDetail: "Nothing was sent to AetherisAgency — this is a labelled simulation.",
       });
     }, 900);
   }
 
   async function handleVerify(result: unknown): Promise<void> {
     setPhase("verifying");
-    const proof = toWorldIdProof(result);
-    if (proof === null) {
-      throw new Error(
-        "World App returned a World ID 4.0 proof. `lib/worldid.verifyWorldIdProof` expects the 3.0 envelope — request the orbLegacy preset.",
-      );
+    const isV4 =
+      typeof result === "object" && result !== null &&
+      (result as IDKitResultLike).protocol_version === "4.0" &&
+      Array.isArray((result as IDKitResultLike).responses);
+    const proof = isV4 ? null : toWorldIdProof(result);
+    if (!isV4 && proof === null) {
+      throw new Error("World App returned a proof in an unrecognised format (neither World ID 4.0 nor a legacy 3.0 envelope).");
     }
-    const response = await fetch("/api/verify-worldid", {
+    // World ID 4.0 results are verified server-side by the relay itself (the raw IDKit
+    // result is forwarded as-is to /api/v4/verify/{rp_id}); legacy 3.0 envelopes go
+    // through /api/verify-worldid first, as before.
+    let payload: { nullifierHash: string; verificationLevel: string };
+    if (isV4) {
+      const first = ((result as IDKitResultLike).responses as Array<Record<string, unknown>>)[0] ?? {};
+      payload = {
+        nullifierHash: String(first.nullifier ?? (Array.isArray(first.session_nullifier) ? first.session_nullifier[0] : "")),
+        verificationLevel: "orb",
+      };
+    } else {
+      const response = await fetch("/api/verify-worldid", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ proof, signal }),
+      });
+      if (!response.ok) {
+        throw new Error(await readApiError(response));
+      }
+      payload = (await response.json()) as { nullifierHash: string; verificationLevel: string };
+    }
+
+    // Cloud proof accepted → relay on-chain. The server burns the real nullifier in
+    // AetherisAgency.verifyOperator; the ZK check itself is bypassed on Hedera (no router).
+    const relayBody = isV4
+      ? (ensName ? { result, signal, ensName } : { result, signal })
+      : (ensName ? { proof, signal, ensName } : { proof, signal });
+    const relay = await fetch("/api/operator/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ proof, signal }),
+      body: JSON.stringify(relayBody),
     });
-    if (!response.ok) {
-      throw new Error(await readApiError(response));
+
+    if (relay.ok) {
+      const onChain = (await relay.json()) as OperatorVerifyResponse;
+      setRelayNotice(null);
+      onVerified({
+        ...payload,
+        simulated: false,
+        txHash: onChain.txHash,
+        hashscan: onChain.hashscan,
+        onChain: "relayed",
+        onChainDetail: onChain.worldIdBypassed
+          ? "Nullifier burned on-chain; the Groth16 proof was checked by World ID's cloud verifier (no World ID router exists on Hedera, so the contract runs in announced bypass mode)."
+          : "Nullifier burned and proof verified on-chain.",
+      });
+      setPhase("idle");
+      return;
     }
-    const payload = (await response.json()) as {
-      nullifierHash: string;
-      verificationLevel: string;
-    };
-    onVerified({ ...payload, simulated: false });
-    setPhase("idle");
+
+    const failure = await readApiErrorParts(relay);
+
+    if (relay.status === 409) {
+      // Same human, second proof: the contract already holds this nullifier.
+      setRelayNotice({
+        kind: "nullifier",
+        title: "Nullifier already burned on-chain.",
+        detail: `${failure.message} ${failure.details}`.trim(),
+      });
+      onVerified({
+        ...payload,
+        simulated: false,
+        txHash: null,
+        hashscan: null,
+        onChain: "already-used",
+        onChainDetail: failure.message,
+      });
+      setPhase("idle");
+      return;
+    }
+
+    if (relay.status === 503) {
+      // Never pretend success: show exactly what has to be configured.
+      setRelayNotice({
+        kind: "config",
+        title: `Configuration required (${failure.code}).`,
+        detail: `${failure.message} ${failure.details}`.trim(),
+      });
+      setPhase("error");
+      return;
+    }
+
+    setRelayNotice({
+      kind: "error",
+      title: `On-chain relay failed (${failure.code}).`,
+      detail: `${failure.message} ${failure.details}`.trim(),
+    });
+    setPhase("error");
   }
 
   if (verification) {
@@ -204,6 +340,24 @@ export function WorldIdGate({
           <p className="data-mono truncate text-slate-400" title={verification.nullifierHash}>
             nullifier {verification.nullifierHash}
           </p>
+          {verification.hashscan && verification.txHash ? (
+            <a
+              href={verification.hashscan}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="data-mono mt-1 inline-flex max-w-full items-center gap-1 truncate text-[0.72rem] text-aether-cyan hover:underline"
+              title={verification.txHash}
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+              verifyOperator tx {verification.txHash.slice(0, 10)}…{verification.txHash.slice(-6)} on HashScan
+            </a>
+          ) : null}
+          {verification.onChain === "already-used" ? (
+            <p className="mt-1 text-[0.72rem] leading-relaxed text-amber-200/85">
+              {verification.onChainDetail ??
+                "This nullifier was already burned in AetherisAgency — the same human cannot register twice."}
+            </p>
+          ) : null}
         </div>
         <Badge tone={verification.simulated ? "demo" : "success"}>
           {verification.simulated ? "Simulated" : verification.verificationLevel}
@@ -255,13 +409,36 @@ export function WorldIdGate({
         ) : null}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {relayNotice ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className={cn(
+              "flex items-start gap-2 rounded-lg border px-3 py-2 text-[0.72rem] leading-relaxed",
+              relayNotice.kind === "config"
+                ? "border-rose-400/25 bg-rose-500/[0.07] text-rose-200"
+                : "border-amber-400/20 bg-amber-400/[0.05] text-amber-200/85",
+            )}
+            role="alert"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="font-medium">{relayNotice.title}</span>{" "}
+              <span className="break-words">{relayNotice.detail}</span>
+            </span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
       {rpContext && appIdValid ? (
         <IDKitRequestWidget
           app_id={appId as `app_${string}`}
           action={action}
           rp_context={rpContext}
-          allow_legacy_proofs
-          preset={{ type: "OrbLegacy", signal }}
+          allow_legacy_proofs={false}
+          preset={proofOfHuman({ signal })}
           open={open}
           onOpenChange={setOpen}
           handleVerify={handleVerify}

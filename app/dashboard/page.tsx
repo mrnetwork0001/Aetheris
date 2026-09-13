@@ -17,6 +17,10 @@ import { toNumber } from "@/components/format";
 import { HcsFeed } from "@/components/hcs-feed";
 import { AgentAvatar } from "@/components/identity";
 import { JobBoard } from "@/components/job-board";
+import {
+  OperatorVerificationBadge,
+  OperatorVerificationNote,
+} from "@/components/operator-verification-badge";
 import { StatCard } from "@/components/stat-card";
 import { TreasuryPanel } from "@/components/treasury-panel";
 import { Badge } from "@/components/ui/badge";
@@ -72,9 +76,32 @@ export default async function DashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="cyan">Hedera testnet · 296</Badge>
+          {stats.source === "live" ? <OperatorVerificationBadge stats={stats.data} /> : null}
+          <Badge
+            tone={worldId.relayable ? "success" : worldId.configured ? "warn" : "demo"}
+            title={
+              worldId.relayable
+                ? `World ID app ${worldId.appId} · action ${worldId.action} · relying party set — proofs are verified by the World ID cloud verifier and relayed to AetherisAgency.verifyOperator.`
+                : worldId.detail ||
+                  "NEXT_PUBLIC_WORLD_ID_APP_ID is empty: /api/operator/verify answers 503 and the human gate runs as a labelled simulation."
+            }
+          >
+            {worldId.relayable
+              ? "World ID live"
+              : worldId.actionStatus === "action-missing"
+                ? `World ID app set · action "${worldId.action}" missing in portal`
+                : worldId.actionStatus === "app-not-found"
+                  ? "World ID app id not found in portal"
+                  : worldId.configured && worldId.rpConfigured === false
+                    ? "World ID app set · relying party missing"
+                    : worldId.configured
+                      ? "World ID partly configured"
+                      : "World ID not configured · gate simulated"}
+          </Badge>
           <DataSourceBadge source={stats.source} reason={stats.error} />
         </div>
       </header>
+      {stats.source === "live" ? <OperatorVerificationNote stats={stats.data} className="mt-4" /> : null}
 
       {/* ── Headline metrics ──────────────────────────────────────────────── */}
       <section aria-label="Agency metrics" className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
