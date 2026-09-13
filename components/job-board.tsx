@@ -2,32 +2,19 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ExternalLink, FileCode2 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Briefcase, ChevronDown, ExternalLink } from "lucide-react";
 
 import { cn, shortAddress } from "@/lib/utils";
-import type { DataSource, Job, JobStatus, SubTask } from "./aetheris-data";
+import type { DataSource, Job, JobStatus } from "./aetheris-data";
 import { DataSourceBadge, FallbackNote } from "./data-source-badge";
 import { formatDate, formatDuration, formatToken, relativeTime } from "./format";
 import { AgentAvatar } from "./identity";
-import { Badge, type BadgeTone } from "./ui/badge";
-import { Card, CardHeader, CardTitle } from "./ui/card";
+import { Card } from "./ui/card";
+import { EmptyState } from "./ui/empty-state";
+import { Pill, statusTone } from "./ui/pill";
+import { Table, TBody, TD, TH, THead, TR } from "./ui/table";
 import { useNow } from "./use-now";
-
-const STATUS_TONE: Record<JobStatus, BadgeTone> = {
-  Funded: "neutral",
-  Dispatched: "glow",
-  Completed: "cyan",
-  Settled: "success",
-  Refunded: "danger",
-};
-
-const TASK_TONE: Record<SubTask["status"], BadgeTone> = {
-  Assigned: "neutral",
-  Completed: "cyan",
-  Paid: "gold",
-  Cancelled: "danger",
-};
 
 type Filter = "all" | "active" | "settled";
 
@@ -58,7 +45,16 @@ export interface JobBoardProps {
 export function JobBoard({ jobs, source, reason }: JobBoardProps) {
   const [filter, setFilter] = React.useState<Filter>("all");
   const [expanded, setExpanded] = React.useState<string | null>(jobs[0]?.jobId ?? null);
+  // Panels toggled by the user after mount animate in; the default-open panel is
+  // server-rendered fully visible (initial={false}) so it never sits at opacity:0.
+  const userToggled = React.useRef(false);
+  const reducedMotion = useReducedMotion();
   const now = useNow();
+
+  const toggle = React.useCallback((jobId: string, open: boolean) => {
+    userToggled.current = true;
+    setExpanded(open ? null : jobId);
+  }, []);
 
   const visible = React.useMemo(() => {
     if (filter === "active") return jobs.filter((j) => ACTIVE_STATUSES.has(j.status));
@@ -67,20 +63,9 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
   }, [jobs, filter]);
 
   return (
-    <Card className="edge-lit">
-      <CardHeader>
-        <div>
-          <CardTitle as="h2">Job pipeline</CardTitle>
-          <p className="mt-1 text-xs text-slate-500">
-            Client deposits escrowed on Hedera EVM, dispatched to specialised sub-agents.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <DataSourceBadge source={source} reason={reason} />
-        </div>
-      </CardHeader>
-
-      <div className="flex items-center gap-1 border-b border-white/[0.06] px-5 py-2.5">
+    <Card flush>
+      {/* ── Toolbar ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-fl-border px-4 py-2.5">
         <div role="tablist" aria-label="Filter jobs" className="flex gap-1">
           {FILTERS.map((item) => (
             <button
@@ -90,205 +75,234 @@ export function JobBoard({ jobs, source, reason }: JobBoardProps) {
               aria-selected={filter === item.id}
               onClick={() => setFilter(item.id)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                filter === item.id
-                  ? "bg-white/[0.08] text-white"
-                  : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-300",
+                "rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors",
+                filter === item.id ? "bg-fl-raised text-white" : "fg-2 hover:text-white",
               )}
             >
               {item.label}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-[0.7rem] tabular-nums text-slate-500">
+        <span className="ml-auto data-mono fg-3">
           {visible.length} of {jobs.length}
         </span>
+        <DataSourceBadge source={source} reason={reason} />
       </div>
 
+      {/* ── Table ────────────────────────────────────────────────────────── */}
       {visible.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-slate-500">
-          No jobs match this filter.
-        </p>
+        <EmptyState
+          icon={<Briefcase />}
+          title={jobs.length === 0 ? "No jobs yet" : "No jobs match this filter"}
+          body={
+            jobs.length === 0
+              ? "Fund a job on the agency contract and it appears here the moment the subgraph indexes it."
+              : "Switch the filter to see the rest of the pipeline."
+          }
+          link={{ href: "/dashboard#agents", label: "See the sub-agent roster" }}
+        />
       ) : (
-        <ul className="divide-y divide-white/[0.05]">
-          {visible.map((job, index) => {
-            const open = expanded === job.jobId;
-            const ratio = paidRatio(job);
-            return (
-              <motion.li
-                key={job.jobId}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.24) }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setExpanded(open ? null : job.jobId)}
-                  aria-expanded={open}
-                  aria-controls={`job-panel-${job.jobId}`}
-                  className="flex w-full items-start gap-3 px-5 py-4 text-left transition-colors hover:bg-white/[0.025]"
-                >
-                  <span className="mt-0.5 hidden shrink-0 sm:block">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-aether-cyan">
-                      <FileCode2 className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                  </span>
-
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="data-mono text-slate-500">#{job.jobId}</span>
-                      <span className="truncate text-sm font-medium text-white">{job.title}</span>
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-slate-500">
-                      <span>
-                        Client{" "}
-                        <span className="text-slate-400">
+        <Table>
+          <THead>
+            <tr>
+              <TH mono>#</TH>
+              <TH>Spec</TH>
+              <TH>Client</TH>
+              <TH align="right">Deposit</TH>
+              <TH align="right">Tasks</TH>
+              <TH>Status</TH>
+              <TH align="right">
+                <span className="sr-only">Expand</span>
+              </TH>
+            </tr>
+          </THead>
+          <TBody>
+            {visible.map((job) => {
+              const open = expanded === job.jobId;
+              const ratio = paidRatio(job);
+              const paid = job.tasks.filter((t) => t.status === "Paid").length;
+              const panelId = `job-panel-${job.jobId}`;
+              return (
+                <React.Fragment key={job.jobId}>
+                  <TR
+                    interactive
+                    onClick={() => toggle(job.jobId, open)}
+                    className={cn(open && "bg-[color:var(--c-row-hover)]")}
+                  >
+                    <TD mono className="fg-3">
+                      #{job.jobId}
+                    </TD>
+                    <TD>
+                      <span className="block max-w-[26rem] truncate font-medium fg">{job.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] fg-3">
+                        {now === null ? formatDate(job.createdAt) : relativeTime(job.createdAt, now)}
+                        {job.specURI ? (
+                          <>
+                            <span aria-hidden="true"> · </span>
+                            <span className="font-mono" title={job.specURI}>
+                              {job.specURI}
+                            </span>
+                          </>
+                        ) : null}
+                      </span>
+                    </TD>
+                    <TD>
+                      <span className="inline-flex items-center gap-2">
+                        <AgentAvatar seed={job.client} label={job.clientName} size="sm" />
+                        <span className="whitespace-nowrap text-[13px] fg-2">
                           {job.clientName ?? shortAddress(job.client)}
                         </span>
                       </span>
-                      <span aria-hidden="true">·</span>
-                      <span>
-                        {now === null
-                          ? formatDate(job.createdAt)
-                          : relativeTime(job.createdAt, now)}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span>
-                        {job.tasks.length} sub-agent{job.tasks.length === 1 ? "" : "s"}
-                      </span>
-                    </span>
-
-                    {job.tasks.length > 0 ? (
-                      <span className="mt-2.5 block h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.07]">
-                        <span
-                          className="block h-full rounded-full bg-gradient-to-r from-aether-glow to-aether-cyan transition-[width] duration-700"
-                          style={{ width: `${Math.max(ratio * 100, 4)}%` }}
-                        />
-                      </span>
-                    ) : null}
-                  </span>
-
-                  <span className="flex shrink-0 flex-col items-end gap-2">
-                    <span className="text-sm font-semibold tabular-nums text-white">
+                    </TD>
+                    <TD mono align="right" className="whitespace-nowrap fg">
                       {formatToken(job.depositRaw, job.tokenDecimals, job.tokenSymbol)}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Badge tone={STATUS_TONE[job.status]}>{job.status}</Badge>
-                      <ChevronDown
-                        aria-hidden="true"
-                        className={cn(
-                          "h-4 w-4 text-slate-500 transition-transform duration-300",
-                          open && "rotate-180",
-                        )}
-                      />
-                    </span>
-                  </span>
-                </button>
+                    </TD>
+                    <TD align="right">
+                      <span className="inline-flex flex-col items-end gap-1.5">
+                        <span className="font-mono text-[0.8rem] tabular-nums fg-2">
+                          {paid}/{job.tasks.length}
+                        </span>
+                        {job.tasks.length > 0 ? (
+                          <span
+                            aria-hidden="true"
+                            className="block h-1 w-16 overflow-hidden rounded-full bg-fl-raised"
+                          >
+                            <span
+                              className="block h-full rounded-full bg-fl-accent transition-[width] duration-700"
+                              style={{ width: `${Math.max(ratio * 100, 4)}%` }}
+                            />
+                          </span>
+                        ) : null}
+                      </span>
+                    </TD>
+                    <TD>
+                      <Pill tone={statusTone(job.status)}>{job.status}</Pill>
+                    </TD>
+                    <TD align="right">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls={panelId}
+                        aria-label={`${open ? "Collapse" : "Expand"} job ${job.jobId}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggle(job.jobId, open);
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] fg-3 transition-colors hover:bg-fl-raised hover:text-white"
+                      >
+                        <ChevronDown
+                          aria-hidden="true"
+                          className={cn("h-4 w-4 transition-transform duration-300", open && "rotate-180")}
+                        />
+                      </button>
+                    </TD>
+                  </TR>
 
-                <AnimatePresence initial={false}>
                   {open ? (
-                    <motion.div
-                      id={`job-panel-${job.jobId}`}
-                      key="panel"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.28, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="border-t border-white/[0.05] bg-black/20 px-5 py-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-[0.7rem] uppercase tracking-wider text-slate-400">
-                            Sub-agent assignments
-                          </p>
-                          {job.specURI ? (
-                            <span className="data-mono truncate text-slate-500" title={job.specURI}>
-                              {job.specURI}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {job.tasks.length === 0 ? (
-                          <p className="mt-3 text-xs text-slate-500">
-                            Deposit escrowed — awaiting dispatch to the sub-agent pool.
-                          </p>
-                        ) : (
-                          <ul className="mt-3 space-y-2">
-                            {job.tasks.map((task) => (
-                              <li
-                                key={`${job.jobId}-${task.taskId}`}
-                                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
-                              >
-                                <AgentAvatar
-                                  seed={task.subAgent}
-                                  label={task.subAgentName}
-                                  size="sm"
-                                />
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-xs font-medium text-slate-200">
-                                    {task.subAgentName}
-                                  </span>
-                                  <span className="block truncate text-[0.7rem] text-slate-500">
-                                    {task.role}
-                                  </span>
-                                </span>
-                                {task.settlementMs ? (
-                                  <span
-                                    className="data-mono hidden text-slate-500 sm:block"
-                                    title="Assignment to on-chain settlement"
-                                  >
-                                    {formatDuration(task.settlementMs)}
-                                  </span>
-                                ) : null}
-                                {task.hcsSequenceNumber ? (
-                                  <span
-                                    className="data-mono hidden text-aether-cyan/70 md:block"
-                                    title="Hedera Consensus Service sequence number"
-                                  >
-                                    HCS #{task.hcsSequenceNumber}
-                                  </span>
-                                ) : null}
-                                <span className="data-mono text-slate-300">
-                                  {formatToken(task.feeRaw, job.tokenDecimals, job.tokenSymbol)}
-                                </span>
-                                <Badge tone={TASK_TONE[task.status]}>{task.status}</Badge>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          {job.netMarginRaw ? (
-                            <p className="text-[0.72rem] text-slate-400">
-                              Net margin retained{" "}
-                              <span className="font-semibold text-aether-gold">
-                                {formatToken(job.netMarginRaw, job.tokenDecimals, job.tokenSymbol)}
+                    <tr id={panelId}>
+                      <td colSpan={7} className="!p-0">
+                        <motion.div
+                          initial={
+                            userToggled.current && !reducedMotion ? { opacity: 0, y: -4 } : false
+                          }
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
+                          className="bg-fl-bg/60 px-5 py-4"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="mono-label">Sub-agent assignments</p>
+                            {job.specURI ? (
+                              <span className="data-mono truncate fg-3" title={job.specURI}>
+                                {job.specURI}
                               </span>
+                            ) : null}
+                          </div>
+
+                          {job.tasks.length === 0 ? (
+                            <p className="mt-3 text-xs fg-2">
+                              Deposit escrowed — awaiting dispatch to the sub-agent pool.
                             </p>
                           ) : (
-                            <span />
+                            <ul className="mt-3 divide-y divide-[color:var(--c-border)] overflow-hidden rounded-[10px] border border-fl-border">
+                              {job.tasks.map((task) => (
+                                <li
+                                  key={`${job.jobId}-${task.taskId}`}
+                                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 bg-fl-card px-3 py-2.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto_auto_auto]"
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-[13px] font-medium fg">
+                                      {task.role}
+                                    </span>
+                                    <span className="block text-[11px] fg-3">task #{task.taskId}</span>
+                                  </span>
+                                  <span className="order-last col-span-2 inline-flex min-w-0 items-center gap-2 sm:order-none sm:col-span-1">
+                                    <AgentAvatar seed={task.subAgent} label={task.subAgentName} size="sm" />
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-[13px] fg-2">
+                                        {task.subAgentName}
+                                      </span>
+                                      {task.settlementMs ? (
+                                        <span
+                                          className="block text-[11px] fg-3"
+                                          title="Assignment to on-chain settlement"
+                                        >
+                                          settled in {formatDuration(task.settlementMs)}
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                  </span>
+                                  <span className="data-mono whitespace-nowrap fg">
+                                    {formatToken(task.feeRaw, job.tokenDecimals, job.tokenSymbol)}
+                                  </span>
+                                  <span
+                                    className="data-mono hidden whitespace-nowrap text-fl-accent sm:inline"
+                                    title="Hedera Consensus Service sequence number"
+                                  >
+                                    {task.hcsSequenceNumber ? `HCS #${task.hcsSequenceNumber}` : "—"}
+                                  </span>
+                                  <Pill tone={statusTone(task.status)} className="justify-self-end">
+                                    {task.status}
+                                  </Pill>
+                                </li>
+                              ))}
+                            </ul>
                           )}
-                          <Link
-                            href={`/agency/${job.client}`}
-                            className="inline-flex items-center gap-1.5 rounded-lg text-[0.72rem] text-aether-cyan transition-colors hover:text-white"
-                          >
-                            View client agency
-                            <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                          </Link>
-                        </div>
-                      </div>
-                    </motion.div>
+
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                            {job.netMarginRaw ? (
+                              <p className="text-xs fg-2">
+                                Net margin retained{" "}
+                                <span className="font-mono font-semibold text-fl-accent">
+                                  {formatToken(job.netMarginRaw, job.tokenDecimals, job.tokenSymbol)}
+                                </span>
+                              </p>
+                            ) : (
+                              <span />
+                            )}
+                            <Link
+                              href={`/agency/${job.client}`}
+                              className="inline-flex items-center gap-1.5 rounded-[6px] text-xs font-medium text-fl-accent transition-colors hover:text-white"
+                            >
+                              View client agency
+                              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                            </Link>
+                          </div>
+                        </motion.div>
+                      </td>
+                    </tr>
                   ) : null}
-                </AnimatePresence>
-              </motion.li>
-            );
-          })}
-        </ul>
+                </React.Fragment>
+              );
+            })}
+          </TBody>
+        </Table>
       )}
 
-      <div className="px-5 pb-4">
-        <FallbackNote source={source} reason={reason} />
-      </div>
+      {source === "demo" ? (
+        <div className="px-4 pb-4">
+          <FallbackNote source={source} reason={reason} />
+        </div>
+      ) : null}
     </Card>
   );
 }
