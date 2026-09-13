@@ -56,7 +56,7 @@ export const privyConfig: Record<string, unknown> = {
   appearance: {
     theme: 'dark',
     accentColor: '#7C5CFF',
-    logo: '/aetheris-mark.svg',
+    logo: '/brand/mark-light.png',
     walletChainType: 'ethereum-only',
     showWalletLoginFirst: false,
   },

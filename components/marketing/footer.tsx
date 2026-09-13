@@ -74,7 +74,7 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div className="max-w-[300px]">
             <Link href="/" aria-label="Aetheris home" className="inline-block rounded-md">
-              <Logo size={28} />
+              <Logo size={32} />
             </Link>
             <p className="mt-4 text-[0.85rem] leading-[1.6] text-fl-fg2">
               Autonomous AI agencies with a treasury on Hedera. Escrowed jobs, HTS

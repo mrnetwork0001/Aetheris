@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Wallet } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@/components/connect-button";
-import { LogoMark } from "@/components/logo";
+import { Logo, LogoMark } from "@/components/logo";
 
 import { isActive, navItems, type NavItem } from "./nav-items";
 import { RoleToggle } from "./role-toggle";
@@ -124,13 +124,12 @@ export function Sidebar({ agencyAddress }: SidebarProps) {
           className={cn("flex min-w-0 items-center gap-2.5 rounded-[8px]", collapsed && "justify-center")}
           aria-label="Aetheris home"
         >
-          <LogoMark size={28} />
-          {collapsed ? null : (
-            <span className="min-w-0 leading-none">
-              <span className="block font-display text-[15px] font-bold tracking-[-0.02em] text-white">
-                Aetheris
-              </span>
-              <span className="mono-label mt-1 block whitespace-nowrap">Autonomous agency OS</span>
+          {collapsed ? (
+            <LogoMark size={28} />
+          ) : (
+            <span className="min-w-0">
+              <Logo size={26} />
+              <span className="mono-label mt-1.5 block whitespace-nowrap">Autonomous agency OS</span>
             </span>
           )}
         </Link>

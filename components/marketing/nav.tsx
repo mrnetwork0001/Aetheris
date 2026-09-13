@@ -64,7 +64,7 @@ export function Nav() {
     >
       <div className="fl-wrap flex h-16 items-center justify-between gap-4">
         <Link href="/" aria-label="Aetheris home" className="rounded-md">
-          <Logo size={28} light />
+          <Logo size={30} light />
         </Link>
 
         <div className="flex items-center gap-4">

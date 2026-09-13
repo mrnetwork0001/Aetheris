@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 import { ConnectButton } from "@/components/connect-button";
-import { LogoMark } from "@/components/logo";
+import { Logo } from "@/components/logo";
 
 import { navItems } from "./nav-items";
 import { RoleToggle } from "./role-toggle";
@@ -33,7 +33,7 @@ export function MobileNav({ agencyAddress }: MobileNavProps) {
         className="absolute left-5 top-0 z-10 flex h-14 items-center gap-2.5 rounded-[8px]"
         aria-label="Aetheris home"
       >
-        <LogoMark size={26} />
+        <Logo size={22} />
         <span className="leading-none">
           <span className="block font-display text-[15px] font-bold tracking-[-0.02em] text-white">
             Aetheris
