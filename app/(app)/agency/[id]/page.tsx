@@ -37,6 +37,8 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { shortAddress } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+/** Hedera transactions and indexer reads can exceed the 10s default on serverless hosts. */
+export const maxDuration = 60;
 
 interface PageProps {
   params: { id: string };

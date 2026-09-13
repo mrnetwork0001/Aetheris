@@ -14,6 +14,8 @@ import { badRequest, describeError, notConfigured, readJsonObject } from "../../
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Upstream HTTP calls only; generous ceiling for slow third-party APIs. */
+export const maxDuration = 30;
 
 export interface RpContextResponse {
   rp_context: {

@@ -37,6 +37,8 @@ export const metadata: Metadata = {
  * dynamic import, so a missing env var degrades one panel instead of the page.
  */
 export const dynamic = "force-dynamic";
+/** Hedera transactions and indexer reads can exceed the 10s default on serverless hosts. */
+export const maxDuration = 60;
 
 const HASHSCAN = "https://hashscan.io/testnet";
 

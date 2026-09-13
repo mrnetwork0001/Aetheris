@@ -53,9 +53,16 @@ export function isSubgraphConfigured(): boolean {
  *
  * @returns A client, or `null` when unconfigured.
  */
-/** `fetch` that opts out of the Next.js Data Cache so every query hits the indexer. */
+/** Upper bound for one indexer round-trip; the callers fall back to demo data on abort. */
+const SUBGRAPH_TIMEOUT_MS = 8_000;
+
+/**
+ * `fetch` that opts out of the Next.js Data Cache so every query hits the indexer,
+ * and aborts instead of hanging when the indexer is unreachable (a dropped packet
+ * would otherwise hold a serverless function open until the platform kills it).
+ */
 const uncachedFetch: typeof fetch = (input, init) =>
-  fetch(input, { ...init, cache: 'no-store' });
+  fetch(input, { ...init, cache: 'no-store', signal: AbortSignal.timeout(SUBGRAPH_TIMEOUT_MS) });
 
 function getClient(): GraphQLClient | null {
   const url = getSubgraphUrl();

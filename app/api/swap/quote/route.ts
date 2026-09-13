@@ -20,6 +20,8 @@ import {
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Upstream HTTP calls only; generous ceiling for slow third-party APIs. */
+export const maxDuration = 30;
 
 export interface QuoteResponse {
   quote: SwapQuote;

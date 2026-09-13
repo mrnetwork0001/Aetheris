@@ -13,6 +13,8 @@ import { badRequest, describeError, readJsonObject, upstreamFailure } from "../_
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Hedera transactions and indexer reads can exceed the 10s default on serverless hosts. */
+export const maxDuration = 60;
 
 const CHAIN_ID = 296;
 const RPC = process.env.HEDERA_TESTNET_RPC ?? "https://testnet.hashio.io/api";

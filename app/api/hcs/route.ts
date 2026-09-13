@@ -39,6 +39,8 @@ import {
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Hedera transactions and indexer reads can exceed the 10s default on serverless hosts. */
+export const maxDuration = 60;
 
 export interface HcsReadResponse {
   topicId: string;

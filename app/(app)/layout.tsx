@@ -12,6 +12,8 @@ import { RoleProvider, type ClientSummary } from "@/components/app/role-context"
  * means right now.
  */
 export const dynamic = "force-dynamic";
+/** Hedera transactions and indexer reads can exceed the 10s default on serverless hosts. */
+export const maxDuration = 60;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const agencyAddress = process.env.NEXT_PUBLIC_AETHERIS_AGENCY_ADDRESS ?? DEMO_AGENCY_ADDRESS;
