@@ -1,38 +1,44 @@
 import * as React from "react";
-import { FlaskConical } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 import type { DataSource } from "./aetheris-data";
-import { Badge, LiveDot } from "./ui/badge";
+import { Pill } from "./ui/pill";
 
 export interface DataSourceBadgeProps {
   source: DataSource;
-  /** Why the live path was unavailable — surfaced as a tooltip. */
+  /** Why the live path was unavailable — surfaced as the tooltip. */
   reason?: string;
   className?: string;
 }
 
+const LIVE_TITLE = "Served from a live indexed source";
+const DEMO_TITLE = "Rendered from local fixtures — not on-chain data.";
+
 /**
  * Honest provenance marker. Anything rendered from fixtures is badged
- * "demo data" so a judge is never shown mock numbers dressed up as chain state.
+ * DEMO DATA so a judge is never shown mock numbers dressed up as chain state.
+ * Never hide this.
  */
 export function DataSourceBadge({ source, reason, className }: DataSourceBadgeProps) {
   if (source === "live") {
     return (
-      <Badge tone="success" className={className} title="Served from a live indexed source">
-        <LiveDot />
+      <Pill
+        tone="on"
+        dot
+        className={cn("live-pill", className)}
+        title={LIVE_TITLE}
+        role="status"
+      >
         Live
-      </Badge>
+      </Pill>
     );
   }
   return (
-    <Badge
-      tone="demo"
-      className={className}
-      title={reason ?? "Rendered from local fixtures — not on-chain data."}
-    >
-      <FlaskConical className="h-3 w-3" aria-hidden="true" />
+    <Pill tone="warn" dashed className={className} title={reason ?? DEMO_TITLE} role="status">
+      <span aria-hidden="true">◌</span>
       Demo data
-    </Badge>
+    </Pill>
   );
 }
 
@@ -40,8 +46,8 @@ export function DataSourceBadge({ source, reason, className }: DataSourceBadgePr
 export function FallbackNote({ source, reason }: { source: DataSource; reason?: string }) {
   if (source === "live" || !reason) return null;
   return (
-    <p className="mt-3 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-[0.7rem] leading-relaxed text-amber-200/80">
-      <span className="font-medium">Fallback active.</span> {reason}
+    <p className="mt-3 rounded-[10px] border border-[#f59e0b40] bg-[#f59e0b1f] px-3 py-2 text-xs leading-relaxed text-[color:var(--c-warn-ink)]">
+      <span className="font-semibold">Fallback active.</span> {reason}
     </p>
   );
 }
