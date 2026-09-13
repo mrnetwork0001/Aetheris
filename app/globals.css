@@ -1,26 +1,112 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Aetheris — "deep space" design tokens
+   Aetheris — design tokens (DESIGN.md §1)
    ──────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --aether-void: 5 6 15;
-    --aether-deep: 11 16 34;
-    --aether-glow: 109 124 255;
-    --aether-cyan: 56 232 255;
-    --aether-gold: 255 200 87;
+    /* Dark surfaces */
+    --fl-bg: #000000;
+    --fl-card: #0a0a0a;
+    --fl-raised: #111111;
+    --fl-border: #1a1a1a;
+    --fl-border-hi: #222222;
+    --fl-border-hover: #2a2a2a;
+    --fl-border-hover-hi: #333333;
+    --fl-eco: #0d0d0d;
+    --fl-eco-border: #1e1e1e;
 
-    --hairline: 255 255 255 / 0.07;
-    --panel: 255 255 255 / 0.025;
+    /* Dark foreground */
+    --fl-fg: #ffffff;
+    --fl-fg-2: #999999;
+    --fl-fg-3: #666666;
+    /* fg-3 lifted to 4.6:1+ on every dark surface — used wherever fg-3 colours readable text. */
+    --fl-fg-3-text: #7d7d7d;
 
-    /* `next/font` injects --font-inter / --font-jetbrains on <html>. */
-    --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-      "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    --font-mono-stack: var(--font-jetbrains), ui-monospace, SFMono-Regular, "SF Mono",
-      Menlo, Consolas, monospace;
+    /* Light sections */
+    --light-bg: #ffffff;
+    --light-heading: #111111;
+    --light-body: #5b5b5b;
+    --light-muted: #6b6b6b;
+    --light-border: #0000001a;
+    --light-pill: #0000000a;
+
+    /* Accent + semantic */
+    --fl-accent: #079ab7;
+    --fl-accent-soft: #079ab71f;
+    --fl-accent-hover: #06869e;
+    --fl-accent-ink: #047a91; /* 5.0:1 against white — small accent text / filled accent buttons */
+    --fl-warn: #f59e0b;
+    --fl-warn-soft: #f59e0b1f;
+    --fl-emerald: #10b981;
+    --fl-emerald-soft: #10b9811f;
+    --fl-rose: #ef4444;
+    --fl-rose-soft: #ef44441f;
+
+    /* Effects */
+    --fl-dot-grid: radial-gradient(#ffffff05 1px, transparent 1px);
+    --fl-shimmer: linear-gradient(90deg, transparent, #079ab740 50%, transparent);
+
+    /* Geometry */
+    --fl-scoop: 200px;
+    --band-pad-y: 150px;
+    --band-pad-x: 60px;
+
+    /* Font stacks — `next/font` injects the --font-* vars on <html>. */
+    --font-display-stack: var(--font-montserrat), ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-sans-stack: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, "Helvetica Neue", sans-serif;
+    --font-mono-stack: var(--font-jetbrains), ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+      Consolas, monospace;
+
+    /* Contextual aliases: dark defaults. `.band--light` / `.on-light` re-point these so every
+       primitive (card, pill, label, button) stays AA on both bands without per-component logic. */
+    --c-fg: var(--fl-fg);
+    --c-fg-2: var(--fl-fg-2);
+    --c-fg-3: var(--fl-fg-3-text);
+    --c-icon: #333333;
+    --c-card: var(--fl-card);
+    --c-raised: var(--fl-raised);
+    --c-border: var(--fl-border);
+    --c-border-hi: var(--fl-border-hi);
+    --c-row-hover: #0f0f0f;
+    --c-accent-ink: var(--fl-accent);
+    --c-warn-ink: var(--fl-warn);
+    --c-emerald-ink: var(--fl-emerald);
+    --c-rose-ink: var(--fl-rose);
+    --c-pill-off-bg: var(--fl-raised);
+    --c-btn-primary-bg: #ffffff;
+    --c-btn-primary-fg: #000000;
+    --c-btn-primary-hover: #e6e6e6;
+    --c-btn-secondary-bg: var(--fl-raised);
+    --c-btn-secondary-hover: #1a1a1a;
+    --c-focus: var(--fl-accent);
+  }
+
+  .band--light,
+  .on-light {
+    color-scheme: light;
+    --c-fg: var(--light-heading);
+    --c-fg-2: var(--light-body);
+    --c-fg-3: var(--light-muted);
+    --c-icon: #c4c4c4;
+    --c-card: var(--light-bg);
+    --c-raised: var(--light-pill);
+    --c-border: var(--light-border);
+    --c-border-hi: #00000026;
+    --c-row-hover: #00000005;
+    --c-accent-ink: var(--fl-accent-ink);
+    --c-warn-ink: #92400e;
+    --c-emerald-ink: #047857;
+    --c-rose-ink: #b91c1c;
+    --c-pill-off-bg: var(--light-pill);
+    --c-btn-primary-bg: #111111;
+    --c-btn-primary-fg: #ffffff;
+    --c-btn-primary-hover: #000000;
+    --c-btn-secondary-bg: var(--light-pill);
+    --c-btn-secondary-hover: #00000014;
   }
 
   * {
@@ -28,13 +114,58 @@
   }
 
   html {
-    color-scheme: dark;
-    scroll-behavior: smooth;
+    /*
+     * Default is instant. Smooth scrolling is scoped to user intent via
+     * `html:focus-within` below: a clicked or tabbed anchor (nav links, hero
+     * CTA, skip link) holds focus, so the hash jump animates; scripted
+     * `window.scrollTo` with nothing focused is instant, which keeps the
+     * DESIGN.md §9.10 step-scroll capture (and every Reveal below the fold)
+     * verifiable as written.
+     */
+    scroll-behavior: auto;
     -webkit-text-size-adjust: 100%;
   }
 
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    color-scheme: dark;
+    background-color: var(--fl-bg);
+    color: var(--fl-fg);
+    font-family: var(--font-sans-stack);
+    font-size: 1rem;
+    line-height: 1.65;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display-stack);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--fl-accent);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    html {
+    html,
+    html:focus-within {
       scroll-behavior: auto;
     }
     *,
@@ -43,31 +174,14 @@
       animation-duration: 0.001ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
     }
   }
 
-  body {
-    @apply bg-aether-void text-slate-300 antialiased;
-    font-family: var(--font-sans-stack);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
-    text-rendering: optimizeLegibility;
-  }
-
-  ::selection {
-    background-color: rgb(var(--aether-glow) / 0.35);
-    color: #fff;
-  }
-
-  :focus-visible {
-    outline: 2px solid rgb(var(--aether-cyan));
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  /* Scrollbars */
+  /* Thin scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+    scrollbar-color: #2a2a2a transparent;
   }
   ::-webkit-scrollbar {
     width: 8px;
@@ -77,206 +191,697 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: rgb(255 255 255 / 0.12);
+    background-color: #2a2a2a;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(255 255 255 / 0.22);
+    background-color: #333333;
+  }
+  .on-light *,
+  .band--light * {
+    scrollbar-color: #d0d0d0 transparent;
   }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Component-level primitives
+   Component recipes
+   ──────────────────────────────────────────────────────────────────────────── */
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.fl-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.fl-wrap {
+  width: 100%;
+  max-width: calc(1200px + 2 * var(--band-pad-x));
+  margin-inline: auto;
+  padding-inline: var(--band-pad-x);
+}
+
+/* ── Signature move: alternating scooped bands (DESIGN.md §2) ─────────── */
+.band {
+  position: relative;
+  width: 100%;
+  padding: var(--band-pad-y) var(--band-pad-x);
+}
+.band--light {
+  background: #ffffff;
+  color: #111111;
+  z-index: 2;
+}
+.band--dark {
+  background: #000000;
+  color: #ffffff;
+  z-index: 1;
+}
+.scoop-br {
+  border-bottom-right-radius: var(--fl-scoop);
+}
+.scoop-tr {
+  border-top-right-radius: var(--fl-scoop);
+}
+.scoop-bl {
+  border-bottom-left-radius: var(--fl-scoop);
+}
+.scoop-tl {
+  border-top-left-radius: var(--fl-scoop);
+}
+/* The following band overlaps its neighbour by the scoop radius so the curve is cut into it.
+   A dark band tucked under a light one sits beneath (z 1 < 2) and therefore needs the extra
+   top padding; a light band tucked over a dark one is on top and does not. */
+.band--tuck {
+  margin-top: calc(-1 * var(--fl-scoop));
+}
+.band--dark.band--tuck {
+  padding-top: calc(var(--band-pad-y) + var(--fl-scoop));
+}
+
+/* ── Display type ───────────────────────────────────────────────────────── */
+.display-1 {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+}
+.display-2 {
+  font-family: var(--font-display-stack);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+}
+.lede {
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: var(--c-fg-2);
+}
+.mono-label {
+  font-family: var(--font-mono-stack);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-fg-3);
+}
+.mono {
+  font-family: var(--font-mono-stack);
+}
+.data-mono {
+  font-family: var(--font-mono-stack);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.fg {
+  color: var(--c-fg);
+}
+.fg-2 {
+  color: var(--c-fg-2);
+}
+.fg-3 {
+  color: var(--c-fg-3);
+}
+.accent-ink {
+  color: var(--c-accent-ink);
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.fl-card {
+  position: relative;
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  color: var(--c-fg);
+  transition: border-color 0.15s ease;
+}
+.fl-card:hover {
+  border-color: var(--c-border-hi);
+}
+.fl-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+.fl-card--dashed {
+  border-style: dashed;
+  border-color: var(--c-border-hi);
+}
+.fl-card--eco {
+  background: var(--fl-eco);
+  border-color: var(--fl-eco-border);
+  border-radius: 16px;
+  /* Lift values + timing: DESIGN.md §9.8 */
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.fl-card--eco:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px #00000080;
+  border-color: #333333;
+}
+.fl-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-border);
+}
+.fl-card__body {
+  padding: 16px 20px;
+}
+.fl-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--c-border);
+}
+/* Header/body/footer used inside a padded (non-flush) card bleed to its edges. */
+.fl-card:not(.fl-card--flush) > .fl-card__header {
+  margin: -20px -22px 16px;
+  padding-inline: 22px;
+}
+.fl-card:not(.fl-card--flush) > .fl-card__body {
+  padding: 0;
+}
+.fl-card:not(.fl-card--flush) > .fl-card__footer {
+  margin: 16px -22px -20px;
+  padding-inline: 22px;
+}
+
+/* ── Pills ──────────────────────────────────────────────────────────────── */
+.fl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  font-family: var(--font-mono-stack);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.fl-pill__dot,
+.fl-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: currentColor;
+}
+.fl-dot {
+  color: var(--c-accent-ink);
+  animation: fl-pulse 2.4s cubic-bezier(0.66, 0, 0, 1) infinite;
+}
+.fl-pill--on {
+  background: var(--fl-accent-soft);
+  color: var(--c-accent-ink);
+  border-color: #079ab740;
+}
+.fl-pill--warn {
+  background: var(--fl-warn-soft);
+  color: var(--c-warn-ink);
+  border-color: #f59e0b40;
+}
+.fl-pill--off {
+  background: var(--c-pill-off-bg);
+  color: var(--c-fg-2);
+  border-color: var(--c-border-hi);
+}
+.fl-pill--muted {
+  background: transparent;
+  color: var(--c-fg-3);
+  border-color: var(--c-border);
+}
+.fl-pill--emerald {
+  background: var(--fl-emerald-soft);
+  color: var(--c-emerald-ink);
+  border-color: #10b98140;
+}
+.fl-pill--rose {
+  background: var(--fl-rose-soft);
+  color: var(--c-rose-ink);
+  border-color: #ef444440;
+}
+/* "white-on-raised" — used for Settled */
+.fl-pill--solid {
+  background: var(--c-raised);
+  color: var(--c-fg);
+  border-color: var(--c-border-hi);
+}
+.fl-pill--dashed {
+  border-style: dashed;
+}
+
+/* ── Buttons (extracted: Montserrat 700 · 10px radius · 10px 20px · .8rem) ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-family: var(--font-display-stack);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.45;
+}
+.btn-sm {
+  padding: 7px 14px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+}
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 0.9rem;
+  border-radius: 12px;
+}
+.btn-primary {
+  background: var(--c-btn-primary-bg);
+  color: var(--c-btn-primary-fg);
+  border-color: var(--c-btn-primary-bg);
+}
+.btn-primary:hover {
+  background: var(--c-btn-primary-hover);
+  border-color: var(--c-btn-primary-hover);
+}
+.btn-secondary {
+  background: var(--c-btn-secondary-bg);
+  color: var(--c-fg);
+  border-color: var(--c-border-hi);
+}
+.btn-secondary:hover {
+  background: var(--c-btn-secondary-hover);
+  border-color: var(--fl-border-hover-hi);
+}
+.btn-accent {
+  background: var(--fl-accent-ink);
+  color: #ffffff;
+  border-color: var(--fl-accent-ink);
+}
+.btn-accent:hover {
+  background: #03677a;
+  border-color: #03677a;
+}
+.btn-outline {
+  background: transparent;
+  color: var(--c-accent-ink);
+  border-color: var(--fl-accent);
+}
+.btn-outline:hover {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-hover);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--c-fg-2);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--c-raised);
+  color: var(--c-fg);
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+.fl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--c-fg);
+}
+.fl-table th {
+  font-family: var(--font-mono-stack);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-fg-3);
+  text-align: left;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--c-border);
+  white-space: nowrap;
+}
+.fl-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--c-border);
+  vertical-align: middle;
+}
+.fl-table tbody tr:last-child > td {
+  border-bottom: 0;
+}
+.fl-table tbody tr:hover > td {
+  background: var(--c-row-hover);
+}
+
+/* ── Textures ───────────────────────────────────────────────────────────── */
+.dot-grid {
+  background-image: var(--fl-dot-grid);
+  background-size: 24px 24px;
+}
+.shimmer-line {
+  height: 1px;
+  background-image: var(--fl-shimmer);
+}
+.fl-skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--c-raised);
+}
+.fl-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: var(--fl-shimmer);
+  animation: fl-shimmer 1.8s infinite;
+}
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Motion + responsive overrides
+   ──────────────────────────────────────────────────────────────────────────── */
+@keyframes fl-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes fl-pulse {
+  0% {
+    box-shadow: 0 0 0 0 #079ab773;
+  }
+  70% {
+    box-shadow: 0 0 0 6px #079ab700;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #079ab700;
+  }
+}
+
+
+@media (max-width: 768px) {
+  :root {
+    --fl-scoop: 96px;
+    --band-pad-y: 96px;
+    --band-pad-x: 24px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Motion — §9 (DESIGN.md, FROZEN)
+   Pure CSS; framer-motion handles Reveal / WipeText. Every keyframe below is paired
+   with a `prefers-reduced-motion: reduce` rule that sets `animation: none`, and no
+   rule here ever changes the opacity of real content.
    ──────────────────────────────────────────────────────────────────────────── */
 @layer components {
-  .aether-container {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
-  }
-
-  /* Gradient rule used to separate major bands */
-  .hairline {
-    background-image: linear-gradient(
-      90deg,
-      transparent,
-      rgb(255 255 255 / 0.12) 20%,
-      rgb(255 255 255 / 0.12) 80%,
-      transparent
-    );
-    height: 1px;
-  }
-
-  /* Text treatments */
-  .text-aurora {
-    background-image: linear-gradient(
-      100deg,
-      #ffffff 0%,
-      #cfd6ff 28%,
-      rgb(var(--aether-cyan)) 55%,
-      #ffffff 82%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .text-gold-gradient {
-    background-image: linear-gradient(100deg, #ffe9b0, rgb(var(--aether-gold)) 60%, #ff9d4d);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Card with a luminous top edge */
-  .edge-lit::before {
-    content: "";
-    position: absolute;
-    inset-inline: 12%;
-    top: 0;
-    height: 1px;
-    background-image: linear-gradient(
-      90deg,
-      transparent,
-      rgb(var(--aether-cyan) / 0.55),
-      transparent
-    );
-    pointer-events: none;
-  }
-
-  /* Faint blueprint grid */
-  .grid-blueprint {
-    background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 78%);
-    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 78%);
-  }
-
-  /* Monospace data cell. Declares the family directly rather than leaning on
-     Tailwind's `font-mono`, since the theme is not extended with our faces. */
-  .data-mono {
-    font-family: var(--font-mono-stack);
-    @apply text-[0.78rem] tabular-nums tracking-tight;
-  }
-
-  .mono {
-    font-family: var(--font-mono-stack);
-  }
-}
-
-/* ────────────────────────────────────────────────────────────────────────────
-   Motion — declared here because tailwind.config.js ships no animation extension
-   ──────────────────────────────────────────────────────────────────────────── */
-@layer utilities {
-  @keyframes aether-drift {
-    from {
-      transform: translate3d(0, 0, 0);
-    }
-    to {
-      transform: translate3d(-120px, -160px, 0);
-    }
-  }
-
-  @keyframes aether-breathe {
+  /* ── Keyframes ──────────────────────────────────────────────────────────── */
+  @keyframes heroFloat {
     0%,
     100% {
-      opacity: 0.35;
-      transform: scale(1);
+      transform: translateY(0);
     }
     50% {
-      opacity: 0.7;
-      transform: scale(1.08);
+      transform: translateY(-14px);
     }
   }
-
-  @keyframes aether-pulse-ring {
-    0% {
-      box-shadow: 0 0 0 0 rgb(var(--aether-cyan) / 0.45);
-    }
-    70% {
-      box-shadow: 0 0 0 7px rgb(var(--aether-cyan) / 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgb(var(--aether-cyan) / 0);
-    }
-  }
-
-  @keyframes aether-shimmer {
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes aether-scan {
-    0% {
-      transform: translateY(-100%);
-      opacity: 0;
-    }
-    45% {
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(1200%);
-      opacity: 0;
-    }
-  }
-
-  @keyframes aether-dash {
-    to {
-      stroke-dashoffset: -64;
-    }
-  }
-
-  @keyframes aether-orbit {
+  @keyframes ecosystem-scroll {
     from {
-      transform: rotate(0deg);
+      transform: translateX(0);
     }
     to {
-      transform: rotate(360deg);
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes ctaPulseEffect {
+    0% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.18);
+    }
+  }
+  @keyframes logoSpin {
+    from {
+      transform: translateZ(55px) rotate(0);
+    }
+    to {
+      transform: translateZ(55px) rotate(360deg);
+    }
+  }
+  @keyframes pathStroke {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: -12px;
+    }
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
     }
   }
 
-  .animate-drift {
-    animation: aether-drift 140s linear infinite alternate;
+  /* ── §9.3 Hero mockup float ─────────────────────────────────────────────── */
+  .hero-float {
+    animation: heroFloat 4s ease-in-out infinite;
+    will-change: transform;
   }
-  .animate-breathe {
-    animation: aether-breathe 9s ease-in-out infinite;
-  }
-  .animate-pulse-ring {
-    animation: aether-pulse-ring 2.4s cubic-bezier(0.66, 0, 0, 1) infinite;
-  }
-  .animate-scan {
-    animation: aether-scan 7s linear infinite;
-  }
-  .animate-dash {
-    stroke-dasharray: 6 10;
-    animation: aether-dash 1.6s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    .hero-float {
+      animation: none;
+    }
   }
 
-  .animate-orbit {
-    animation: aether-orbit 26s linear infinite;
+  /* ── §9.4 Ecosystem marquee ─────────────────────────────────────────────── */
+  .ecosystem-row {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
-  .animate-orbit-slow {
-    animation: aether-orbit 44s linear infinite;
+  .ecosystem-row::-webkit-scrollbar {
+    display: none;
+  }
+  .ecosystem-track {
+    display: flex;
+    gap: 20px;
+    width: max-content;
+    /* Trailing gap makes the clone period exactly 50% of the track width. */
+    padding-right: 20px;
+    animation: ecosystem-scroll 46s linear infinite;
+    will-change: transform;
+  }
+  .ecosystem-row:hover .ecosystem-track,
+  .ecosystem-row:focus-within .ecosystem-track,
+  .ecosystem-row[data-paused="true"] .ecosystem-track {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ecosystem-row {
+      scroll-snap-type: x mandatory;
+    }
+    .ecosystem-track {
+      animation: none;
+      width: auto;
+      padding-right: 0;
+    }
+    .ecosystem-track > li {
+      scroll-snap-align: start;
+    }
+    .ecosystem-track > li[aria-hidden="true"] {
+      display: none;
+    }
   }
 
-  /* Shimmer overlay for skeletons */
-  .shimmer::after {
+  /* ── §9.5 CTA pulse ring ────────────────────────────────────────────────── */
+  .btn-cta-pulse {
+    position: relative;
+  }
+  .btn-cta-pulse::after {
     content: "";
     position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-      90deg,
-      transparent,
-      rgb(255 255 255 / 0.07),
-      transparent
-    );
-    animation: aether-shimmer 1.8s infinite;
+    inset: -3px;
+    border-radius: inherit;
+    border: 2px solid currentColor;
+    opacity: 0.6;
+    pointer-events: none;
+    animation: ctaPulseEffect 2.5s infinite;
+  }
+  /* The ring is drawn in the button's own text colour; on a light band the primary
+     button is black-on-white text, so re-point the ring at the button surface. */
+  .band--light .btn-cta-pulse::after,
+  .on-light .btn-cta-pulse::after {
+    border-color: var(--c-btn-primary-bg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-cta-pulse::after {
+      animation: none;
+      opacity: 0;
+    }
   }
 
-  .mask-fade-b {
-    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  /* ── §9.6 Ledger cube spin ──────────────────────────────────────────────── */
+  .cube-stage {
+    perspective: 900px;
+  }
+  .cube-spin {
+    position: relative;
+    transform-style: preserve-3d;
+    animation: logoSpin 16s linear infinite;
+    will-change: transform;
+  }
+  .cube-stage:hover .cube-spin {
+    animation-play-state: paused;
+  }
+  .cube-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    width: 56%;
+    height: 14%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, #0000002e 0%, #00000000 70%);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cube-spin {
+      animation: none;
+    }
+  }
+
+  /* ── §9.7 Marching connector ────────────────────────────────────────────── */
+  .path-march {
+    stroke: var(--fl-accent);
+    stroke-width: 2px;
+    stroke-dasharray: 6 6;
+    stroke-linecap: round;
+    fill: none;
+    vector-effect: non-scaling-stroke;
+    animation: pathStroke 1.5s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .path-march {
+      animation: none;
+    }
+  }
+
+  /* ── §9.8 Hover lifts & live dots ───────────────────────────────────────── */
+  /* `.fl-card--eco` carries the same lift in the card recipe above; this hook is for
+     non-Card ecosystem surfaces. */
+  .ecosystem-card {
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+      box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+      border-color 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .ecosystem-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px #00000080;
+    border-color: #333333;
+  }
+  .card-logo {
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .ecosystem-card:hover .card-logo,
+  .fl-card--eco:hover .card-logo {
+    transform: scale(1.06);
+  }
+  /* Light cards: padded content cards lift; flush table/list shells stay put. */
+  .fl-card--lift,
+  .band--light .fl-card:not(.fl-card--flush):not(.fl-card--eco),
+  .on-light .fl-card:not(.fl-card--flush):not(.fl-card--eco) {
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+      box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1),
+      border-color 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .fl-card--lift:hover,
+  .band--light .fl-card:not(.fl-card--flush):not(.fl-card--eco):hover,
+  .on-light .fl-card:not(.fl-card--flush):not(.fl-card--eco):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 50px #0000000f;
+    border-color: #cbd5e1;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px #ffffff1a;
+  }
+  /* A white glow is invisible on a white band — same geometry, ink-coloured. */
+  .band--light .btn-primary:hover,
+  .on-light .btn-primary:hover {
+    box-shadow: 0 4px 16px #0000001f;
+  }
+  .btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: none;
+  }
+  .live-dot,
+  .live-pill .fl-pill__dot {
+    animation: pulse 2s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ecosystem-card,
+    .fl-card--eco,
+    .card-logo,
+    .fl-card--lift,
+    .band--light .fl-card,
+    .on-light .fl-card,
+    .btn-primary {
+      transition: none;
+    }
+    .ecosystem-card:hover,
+    .fl-card--eco:hover,
+    .fl-card--lift:hover,
+    .band--light .fl-card:hover,
+    .on-light .fl-card:hover,
+    .btn-primary:hover {
+      transform: none;
+    }
+    .live-dot,
+    .live-pill .fl-pill__dot {
+      animation: none;
+      opacity: 1;
+    }
   }
 }
+
+/* Utilities last: `p-0`, `!p-6`, `text-fl-accent` etc. must beat the recipes above. */
+@tailwind utilities;
