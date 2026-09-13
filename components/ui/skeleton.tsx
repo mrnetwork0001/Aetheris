@@ -3,13 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      aria-hidden="true"
-      className={cn("shimmer relative overflow-hidden rounded-md bg-white/[0.05]", className)}
-      {...props}
-    />
-  );
+  return <div aria-hidden="true" className={cn("fl-skeleton", className)} {...props} />;
 }
 
 /** Repeats a skeleton row `count` times — for list and table placeholders. */
@@ -18,7 +12,7 @@ export function SkeletonRows({ count = 4, className }: { count?: number; classNa
     <div className={cn("space-y-3", className)} role="status" aria-label="Loading">
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="flex items-center gap-3">
-          <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-3 w-1/2" />
             <Skeleton className="h-3 w-1/4" />
