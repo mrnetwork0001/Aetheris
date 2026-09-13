@@ -53,11 +53,21 @@ export function isSubgraphConfigured(): boolean {
  *
  * @returns A client, or `null` when unconfigured.
  */
+/** `fetch` that opts out of the Next.js Data Cache so every query hits the indexer. */
+const uncachedFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: 'no-store' });
+
 function getClient(): GraphQLClient | null {
   const url = getSubgraphUrl();
   if (url.length === 0) return null;
   if (!cachedClient || cachedUrl !== url) {
-    cachedClient = new GraphQLClient(url, { headers: { 'Content-Type': 'application/json' } });
+    cachedClient = new GraphQLClient(url, {
+      headers: { 'Content-Type': 'application/json' },
+      // Bypass the Next.js Data Cache: without `cache: 'no-store'` the patched global
+      // fetch memoises every (url, body) pair for a year, so LIVE panels freeze at
+      // whatever the subgraph answered first.
+      fetch: uncachedFetch,
+    });
     cachedUrl = url;
   }
   return cachedClient;
@@ -144,7 +154,7 @@ export const JOBS_QUERY = /* GraphQL */ `
       id
       jobId
       client
-      token
+      token { id }
       deposit
       specURI
       status
@@ -160,6 +170,10 @@ export const JOBS_QUERY = /* GraphQL */ `
         role
         status
         fee
+        assignedAt
+        completedAt
+        paidAt
+        hcsTopicId
         hcsSequenceNumber
         subAgent { id address ensName }
       }
@@ -182,7 +196,8 @@ export const AGENCY_STATS_QUERY = /* GraphQL */ `
     agency(id: $id) {
       id
       address
-      operator
+      operator { id address ensName verified nullifierHash }
+      nullifierHash
       ensName
       totalJobs
       jobsSettled
@@ -286,6 +301,36 @@ export const TASKS_QUERY_MINIMAL = /* GraphQL */ `
   }
 `;
 
+/**
+ * Rich `settlements` projection. `job`, `task`, `subAgent` and `token` are entity
+ * references in the deployed schema, so each needs a sub-selection.
+ */
+export const SETTLEMENTS_QUERY = /* GraphQL */ `
+  query AetherisSettlements($first: Int!) {
+    settlements(first: $first, orderBy: timestamp, orderDirection: desc) {
+      id
+      job { jobId }
+      task { taskId }
+      subAgent { id ensName }
+      token { id }
+      amount
+      viaHts
+      rail
+      timestamp
+      transactionHash
+    }
+  }
+`;
+
+/** Minimal `settlements` projection. */
+export const SETTLEMENTS_QUERY_MINIMAL = /* GraphQL */ `
+  query AetherisSettlementsMinimal($first: Int!) {
+    settlements(first: $first) {
+      id
+    }
+  }
+`;
+
 /** Rich `rebalances` projection (1inch treasury swaps indexed on-chain). */
 export const REBALANCES_QUERY = /* GraphQL */ `
   query AetherisRebalances($first: Int!) {
@@ -341,7 +386,8 @@ export const AGENCIES_QUERY = /* GraphQL */ `
     agencies(first: $first, orderBy: grossRevenue, orderDirection: desc) {
       id
       address
-      operator
+      operator { id address ensName verified nullifierHash }
+      nullifierHash
       ensName
       totalJobs
       jobsSettled
@@ -444,6 +490,21 @@ export async function getTasks(first = 25): Promise<unknown[]> {
 }
 
 /**
+ * Fetch indexed micro-settlements, newest first.
+ *
+ * @param first - Page size (1–1000, default 25).
+ * @returns Settlement entities, or `[]` when unavailable.
+ */
+export async function getSettlements(first = 25): Promise<unknown[]> {
+  const data = await queryWithFallback<{ settlements?: unknown[] }>(
+    SETTLEMENTS_QUERY,
+    SETTLEMENTS_QUERY_MINIMAL,
+    { first: clampFirst(first) },
+  );
+  return data?.settlements ?? [];
+}
+
+/**
  * Fetch indexed 1inch treasury rebalances.
  *
  * @param first - Page size (1–1000, default 25).
@@ -471,4 +532,182 @@ export async function getHcsAnchors(first = 25): Promise<unknown[]> {
     { first: clampFirst(first) },
   );
   return data?.hcsAnchors ?? [];
+}
+
+/* ────────────────────────────── Treasury helpers ────────────────────────────
+ * Used by `lib/treasury.ts` to discover which ERC-20 / HTS tokens the treasury
+ * has ever been funded in, and by `loadAgencyStats` to measure real finality.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Every token a job has been funded in. `Job.token` is a `Token` entity in the
+ * deployed schema, so we select its `id` (the lowercase EVM address).
+ */
+export const TREASURY_TOKENS_QUERY = /* GraphQL */ `
+  query AetherisTreasuryTokens($first: Int!) {
+    jobs(first: $first) {
+      token { id }
+    }
+  }
+`;
+
+/** Fallback: the de-duplicated `tokens` collection the subgraph maintains itself. */
+export const TREASURY_TOKENS_QUERY_MINIMAL = /* GraphQL */ `
+  query AetherisTreasuryTokensMinimal($first: Int!) {
+    tokens(first: $first) {
+      id
+    }
+  }
+`;
+
+/** Assignment → payout timestamps for every task that has actually been paid. */
+export const TASK_TIMINGS_QUERY = /* GraphQL */ `
+  query AetherisTaskTimings($first: Int!) {
+    tasks(first: $first, where: { status: Paid }) {
+      assignedAt
+      paidAt
+    }
+  }
+`;
+
+/** Minimal `tasks` projection (no timing fields → caller yields `[]`). */
+export const TASK_TIMINGS_QUERY_MINIMAL = /* GraphQL */ `
+  query AetherisTaskTimingsMinimal($first: Int!) {
+    tasks(first: $first, where: { status: Paid }) {
+      id
+    }
+  }
+`;
+
+/** Normalize an unknown to a lowercase 0x-prefixed 20-byte address, else `null`. */
+function asEvmAddress(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase();
+  return /^0x[0-9a-f]{40}$/.test(v) ? v : null;
+}
+
+/**
+ * Distinct token addresses jobs have been funded in (lowercase, de-duplicated,
+ * insertion-ordered).
+ *
+ * @returns Token addresses, or `[]` when the subgraph is unset/unreachable.
+ */
+export async function getTreasuryTokens(): Promise<string[]> {
+  const data = await queryWithFallback<{ jobs?: unknown[]; tokens?: unknown[] }>(
+    TREASURY_TOKENS_QUERY,
+    TREASURY_TOKENS_QUERY_MINIMAL,
+    { first: 1000 },
+  );
+  if (!data) return [];
+  const seen = new Set<string>();
+  const rows: unknown[] = Array.isArray(data.jobs) ? data.jobs : [];
+  for (const row of rows) {
+    if (typeof row !== 'object' || row === null) continue;
+    const token = (row as { token?: unknown }).token;
+    const addr =
+      typeof token === 'object' && token !== null
+        ? asEvmAddress((token as { id?: unknown }).id ?? (token as { address?: unknown }).address)
+        : asEvmAddress(token);
+    if (addr) seen.add(addr);
+  }
+  const tokens: unknown[] = Array.isArray(data.tokens) ? data.tokens : [];
+  for (const row of tokens) {
+    if (typeof row !== 'object' || row === null) continue;
+    const addr = asEvmAddress((row as { id?: unknown }).id);
+    if (addr) seen.add(addr);
+  }
+  return [...seen];
+}
+
+/**
+ * `(assignedAt, paidAt)` pairs — unix seconds — for every task with status `Paid`.
+ * Rows missing either timestamp are dropped so the caller can average honestly.
+ *
+ * @returns Timing pairs, or `[]` when the subgraph is unset/unreachable or no
+ *   task has been paid yet.
+ */
+export async function getTaskTimings(): Promise<{ assignedAt: number; paidAt: number }[]> {
+  const data = await queryWithFallback<{ tasks?: unknown[] }>(
+    TASK_TIMINGS_QUERY,
+    TASK_TIMINGS_QUERY_MINIMAL,
+    { first: 1000 },
+  );
+  const rows: unknown[] = Array.isArray(data?.tasks) ? data.tasks : [];
+  const out: { assignedAt: number; paidAt: number }[] = [];
+  for (const row of rows) {
+    if (typeof row !== 'object' || row === null) continue;
+    const r = row as { assignedAt?: unknown; paidAt?: unknown };
+    const assignedAt = Number(r.assignedAt);
+    const paidAt = Number(r.paidAt);
+    if (!Number.isFinite(assignedAt) || !Number.isFinite(paidAt)) continue;
+    if (assignedAt <= 0 || paidAt <= 0) continue;
+    out.push({ assignedAt, paidAt });
+  }
+  return out;
+}
+
+/** Per-sub-agent assignment → payout timestamps for every task that has been paid. */
+export const AGENT_TIMINGS_QUERY = /* GraphQL */ `
+  query AetherisAgentTimings($first: Int!) {
+    tasks(first: $first, where: { status: Paid }) {
+      subAgent {
+        id
+      }
+      assignedAt
+      paidAt
+    }
+  }
+`;
+
+/** Minimal `tasks` projection (no sub-agent/timing fields → caller yields `[]`). */
+export const AGENT_TIMINGS_QUERY_MINIMAL = /* GraphQL */ `
+  query AetherisAgentTimingsMinimal($first: Int!) {
+    tasks(first: $first, where: { status: Paid }) {
+      id
+    }
+  }
+`;
+
+/** One paid task's settlement timing, keyed by the sub-agent that performed it. */
+export interface AgentTiming {
+  /** Lowercase 0x-prefixed sub-agent address. */
+  subAgent: string;
+  /** Unix seconds. */
+  assignedAt: number;
+  /** Unix seconds. */
+  paidAt: number;
+}
+
+/**
+ * `(subAgent, assignedAt, paidAt)` triples — unix seconds — for every task with
+ * status `Paid`. Rows missing the sub-agent or either timestamp are dropped so
+ * per-agent averages stay honest.
+ *
+ * @returns Timing rows, or `[]` when the subgraph is unset/unreachable or no
+ *   task has been paid yet.
+ */
+export async function getAgentTimings(): Promise<AgentTiming[]> {
+  const data = await queryWithFallback<{ tasks?: unknown[] }>(
+    AGENT_TIMINGS_QUERY,
+    AGENT_TIMINGS_QUERY_MINIMAL,
+    { first: 1000 },
+  );
+  const rows: unknown[] = Array.isArray(data?.tasks) ? data.tasks : [];
+  const out: AgentTiming[] = [];
+  for (const row of rows) {
+    if (typeof row !== 'object' || row === null) continue;
+    const r = row as { subAgent?: unknown; assignedAt?: unknown; paidAt?: unknown };
+    const agent = r.subAgent;
+    const subAgent =
+      typeof agent === 'object' && agent !== null
+        ? asEvmAddress((agent as { id?: unknown }).id ?? (agent as { address?: unknown }).address)
+        : asEvmAddress(agent);
+    if (!subAgent) continue;
+    const assignedAt = Number(r.assignedAt);
+    const paidAt = Number(r.paidAt);
+    if (!Number.isFinite(assignedAt) || !Number.isFinite(paidAt)) continue;
+    if (assignedAt <= 0 || paidAt <= 0) continue;
+    out.push({ subAgent, assignedAt, paidAt });
+  }
+  return out;
 }
