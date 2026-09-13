@@ -158,8 +158,8 @@ const AGENCY_FUNCTIONS: ReadonlyArray<FnRow> = [
     emits: "TaskCancelled (per open task)\nJobRefunded",
     notes: (
       <>
-        <Code>nonReentrant</Code>. Job must be Funded or Dispatched (<Code>NotClientOrOperator</Code>{" "}
-        otherwise). Cancels Assigned and Completed tasks and returns the whole escrow to the client.
+        <Code>nonReentrant</Code>. Job must be Funded or Dispatched (<Code>InvalidJobStatus</Code>{" "}
+        otherwise); any other caller gets <Code>NotClientOrOperator</Code>. Cancels Assigned and Completed tasks and returns the whole escrow to the client.
       </>
     ),
   },
