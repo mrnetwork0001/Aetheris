@@ -268,6 +268,13 @@ async function onChainTask(agency, jobId, taskId) {
 
 // ── Main loop ───────────────────────────────────────────────────────────────
 
+/** ethers wraps JSON-RPC failures; surface the server body so a precheck reason is visible. */
+function rpcDetail(e) {
+  const body = e && e.info && e.info.responseBody ? String(e.info.responseBody).slice(0, 200) : "";
+  const inner = e && e.error && e.error.message ? String(e.error.message).slice(0, 200) : "";
+  return [body, inner].filter(Boolean).join(" | ");
+}
+
 async function handleTask(task, { agencyWorker, agencyRead, worker }) {
   const jobId = BigInt(task.job.jobId);
   const taskId = BigInt(task.taskId);
@@ -311,7 +318,13 @@ async function handleTask(task, { agencyWorker, agencyRead, worker }) {
 
   let receipt;
   try {
-    const tx = await agencyWorker.completeTask(jobId, taskId, frame.resultHash, TOPIC, BigInt(anchored.sequenceNumber), { gasLimit: 600_000 });
+    // Hashio prechecks balance against gasLimit x maxFeePerGas; ethers doubles the base fee for that
+    // ceiling, so a worker holding enough for the real cost still gets HTTP 400. Top up first and
+    // send a legacy-priced transaction at the network gas price.
+    const top = await identity.topUpIfLow(worker.address, 1.6, 2);
+    if (top.toppedUp) log(`    worker HBAR was ${top.before.toFixed(3)}; topped up to ${top.balance.toFixed(3)} (tx ${top.txHash})`);
+    const gasPrice = (await agencyWorker.runner.provider.getFeeData()).gasPrice;
+    const tx = await agencyWorker.completeTask(jobId, taskId, frame.resultHash, TOPIC, BigInt(anchored.sequenceNumber), { gasLimit: 600_000, gasPrice });
     receipt = await tx.wait();
   } catch (e) {
     const now = await onChainTask(agencyRead, jobId, taskId).catch(() => null);
@@ -320,7 +333,7 @@ async function handleTask(task, { agencyWorker, agencyRead, worker }) {
       handled.add(task.id);
       return;
     }
-    log(`  SKIP ${label}: completeTask failed - ${(e.shortMessage || e.message).slice(0, 200)} (HCS seq ${anchored.sequenceNumber} stays anchored; will retry next poll)`);
+    log(`  SKIP ${label}: completeTask failed - ${rpcDetail(e)} ${(e.shortMessage || e.message).slice(0, 200)} (HCS seq ${anchored.sequenceNumber} stays anchored; will retry next poll)`);
     return;
   }
 
