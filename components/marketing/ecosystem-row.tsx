@@ -1,0 +1,194 @@
+"use client";
+
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Band } from "@/components/ui/section-band";
+import { Card } from "@/components/ui/card";
+import { Pill } from "@/components/ui/pill";
+
+import { DARK_PB_SCOOP } from "./manifesto";
+import { Reveal } from "./reveal";
+import { WipeText } from "./wipe-text";
+
+type Status = "integrated" | "needs-key";
+
+interface Sponsor {
+  name: string;
+  role: string;
+  glyph: string;
+  tone: string;
+  body: string;
+  status: Status;
+  needs?: string;
+}
+
+/** Real integration status from README.md § Integration status. */
+const SPONSORS: readonly Sponsor[] = [
+  {
+    name: "Hedera",
+    role: "EVM · HTS · HCS",
+    glyph: "ℏ",
+    tone: "text-fl-fg",
+    body: "Contracts live on Hedera EVM. Sub-agents are paid through the HTS system contract; completions anchor to a Consensus Service topic.",
+    status: "integrated",
+  },
+  {
+    name: "The Graph",
+    role: "Self-hosted subgraph",
+    glyph: "◍",
+    tone: "text-[#a78bfa]",
+    body: "graph-node against the Hedera JSON-RPC relay. 17 entities, 10 handlers; Settlement.viaHts makes HTS vs ERC-20 routing queryable.",
+    status: "integrated",
+  },
+  {
+    name: "World ID",
+    role: "Proof of personhood",
+    glyph: "◎",
+    tone: "text-fl-fg",
+    body: "verifyOperator takes a Semaphore proof and burns its nullifier. Testnet deploy runs in explicit bypass mode, announced on-chain.",
+    status: "needs-key",
+    needs: "WORLD_ID_ROUTER_ADDRESS",
+  },
+  {
+    name: "1inch",
+    role: "Swap API v6.0",
+    glyph: "⟁",
+    tone: "text-[#f87171]",
+    body: "Treasury rebalancing quotes and builds, called server-side. Without a key the route returns a typed 502 instead of fake prices.",
+    status: "needs-key",
+    needs: "ONEINCH_API_KEY",
+  },
+  {
+    name: "Privy",
+    role: "Embedded passkey wallets",
+    glyph: "◈",
+    tone: "text-[#c4b5fd]",
+    body: "Operators sign in with a passkey and get an embedded wallet. The provider is wired; login is not exercised until the app id is set.",
+    status: "needs-key",
+    needs: "NEXT_PUBLIC_PRIVY_APP_ID",
+  },
+  {
+    name: "ENS",
+    role: "Agent identity",
+    glyph: "⬡",
+    tone: "text-[#7dd3fc]",
+    body: "Agency and sub-agent addresses resolve against Ethereum mainnet with public RPC fallbacks. aetheris.eth is the demo identity.",
+    status: "integrated",
+  },
+];
+
+function StatusPill({ status }: { status: Status }) {
+  return status === "integrated" ? (
+    <Pill tone="on">✓ Integrated</Pill>
+  ) : (
+    <Pill tone="warn">◌ Needs key</Pill>
+  );
+}
+
+/** One card. `decorative` marks the marquee clone (§9.4): hidden from AT, never focusable. */
+function SponsorCard({ sponsor, decorative = false }: { sponsor: Sponsor; decorative?: boolean }) {
+  return (
+    <li
+      aria-hidden={decorative || undefined}
+      className="w-[280px] shrink-0 md:w-[320px]"
+    >
+      <Card eco className="flex h-full flex-col p-6">
+        <span
+          aria-hidden="true"
+          className={`card-logo inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-fl-borderHi bg-fl-raised text-[1.25rem] font-bold ${sponsor.tone}`}
+        >
+          {sponsor.glyph}
+        </span>
+        <h3 className="mt-5 font-display text-[1.1rem] font-bold text-fl-fg">{sponsor.name}</h3>
+        <p className="mono-label mt-1">{sponsor.role}</p>
+        <p className="mt-3 flex-1 text-[0.88rem] leading-[1.6] text-fl-fg2">{sponsor.body}</p>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <StatusPill status={sponsor.status} />
+          {sponsor.needs ? (
+            <span className="data-mono text-[0.68rem] text-fl-dim">{sponsor.needs}</span>
+          ) : null}
+        </div>
+      </Card>
+    </li>
+  );
+}
+
+/** Card width + the 20px track gap (§9.4). */
+const MARQUEE_GAP = 20;
+
+export function EcosystemRow() {
+  // The overflow container, not the animated track: chevrons nudge its `scrollLeft`.
+  const rowRef = React.useRef<HTMLDivElement>(null);
+  // Once a chevron is used the marquee yields to manual scrolling.
+  const [paused, setPaused] = React.useState(false);
+
+  function scrollBy(direction: -1 | 1) {
+    const row = rowRef.current;
+    if (!row) return;
+    setPaused(true);
+    const card = row.querySelector<HTMLElement>("li");
+    const step = card ? card.offsetWidth + MARQUEE_GAP : 320;
+    row.scrollBy({ left: direction * step, behavior: "smooth" });
+  }
+
+  return (
+    <Band tone="dark" tuck id="ecosystem" className={`scroll-mt-16 ${DARK_PB_SCOOP}`}>
+      <Reveal>
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-[640px]">
+            <WipeText
+              as="h2"
+              tone="dark"
+              lines={["Built on Hedera"]}
+              className="display-2 text-fl-fg"
+            />
+            <p className="mt-4 text-[1.05rem] leading-[1.65] text-fl-fg2">
+              Every integration owns a specific job in the settlement loop. The pill on each card
+              is the real status: three run live today, three are wired and wait on a key.
+            </p>
+          </div>
+          <div className="hidden items-center gap-2 md:flex">
+            <button
+              type="button"
+              onClick={() => scrollBy(-1)}
+              aria-label="Scroll integrations left"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-fl-borderHi bg-fl-card text-fl-fg transition-colors hover:bg-fl-raised"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollBy(1)}
+              aria-label="Scroll integrations right"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-fl-borderHi bg-fl-card text-fl-fg transition-colors hover:bg-fl-raised"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </Reveal>
+
+      {/* §9.4 marquee: `.ecosystem-row` is the scroll container (chevrons, swipe, reduced-motion
+          snap list); `.ecosystem-track` is the animated strip holding the six cards plus one
+          aria-hidden clone so the −50% loop is seamless. Hover / focus-within pauses it. */}
+      <div
+        ref={rowRef}
+        role="group"
+        aria-label="Ecosystem integrations"
+        tabIndex={0}
+        data-paused={paused || undefined}
+        className="ecosystem-row -mx-6 mt-10 px-6 pb-4 pt-2 md:mx-0 md:px-0"
+      >
+        <ul className="ecosystem-track">
+          {SPONSORS.map((sponsor) => (
+            <SponsorCard key={sponsor.name} sponsor={sponsor} />
+          ))}
+          {SPONSORS.map((sponsor) => (
+            <SponsorCard key={`${sponsor.name}-clone`} sponsor={sponsor} decorative />
+          ))}
+        </ul>
+      </div>
+    </Band>
+  );
+}
