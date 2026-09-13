@@ -12,7 +12,9 @@
     "test:contracts": "hardhat test",
     "deploy:hedera": "hardhat run scripts/deploy.js --network hederaTestnet",
     "codegen": "graph codegen subgraph/subgraph.yaml --output-dir subgraph/generated",
-    "build:subgraph": "graph build subgraph/subgraph.yaml --output-dir subgraph/build"
+    "build:subgraph": "graph build subgraph/subgraph.yaml --output-dir subgraph/build",
+    "agent:worker": "node scripts/agent-worker.js",
+    "agent:demo": "node scripts/agent-demo.js"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",

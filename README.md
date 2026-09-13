@@ -152,6 +152,20 @@ missing variable named inline - nothing is presented as chain data that isn't.
 | **1inch** | Routes implemented, returns a typed 502 without a key | `ONEINCH_API_KEY` |
 | **Privy** | Configured, login not exercised | `NEXT_PUBLIC_PRIVY_APP_ID` |
 
+### Sub-agent worker
+
+`scripts/agent-worker.js` is a real sub-agent: it owns a Hedera account (created on first run,
+appended to `.env`), polls the subgraph for tasks assigned to it, produces the deliverable on the
+**0G Compute Router** (`ZG_API_KEY`, model `glm-5.2`), anchors the text on HCS topic `0.0.10518320`
+and calls `completeTask` with `keccak256(text)` signed by its own key. `scripts/agent-demo.js` is the
+operator side: fund a job in aUSD over HTS, assign one task, wait for the worker, settle, and verify
+that the mirror-node frame hashes to the on-chain `resultHash`. Docs: `/docs/agents`.
+
+```bash
+npm run agent:worker      # terminal 1 - long-running worker (needs ZG_API_KEY)
+npm run agent:demo        # terminal 2 - one job end to end, prints "hash match: true"
+```
+
 ### On World ID bypass mode
 
 With no `WORLD_ID_ROUTER_ADDRESS` set, `AetherisAgency` deploys in a bypass

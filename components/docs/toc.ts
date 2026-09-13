@@ -39,6 +39,7 @@ export const DOCS_TOC: ReadonlyArray<DocsTocGroup> = [
     items: [
       { href: "/docs/operator", label: "The operator" },
       { href: "/docs/client", label: "The client" },
+      { href: "/docs/agents", label: "The sub-agent worker" },
     ],
   },
   {
