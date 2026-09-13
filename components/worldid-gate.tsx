@@ -8,8 +8,8 @@ import { AlertTriangle, BadgeCheck, ExternalLink, ScanFace, ShieldCheck } from "
 import type { WorldIdProof } from "@/lib/worldid";
 import { cn } from "@/lib/utils";
 import { readApiError } from "./api-client";
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Pill } from "./ui/pill";
 
 /**
  * World ID proof-of-personhood gate.
@@ -319,25 +319,25 @@ export function WorldIdGate({
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className={cn(
-          "flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3",
+          "flex flex-wrap items-center gap-3 rounded-[12px] border px-4 py-3",
           verification.simulated
-            ? "border-amber-400/30 bg-amber-400/[0.06]"
-            : "border-emerald-400/30 bg-emerald-400/[0.06]",
+            ? "border-[#f59e0b40] bg-fl-warnSoft"
+            : "border-[#10b98140] bg-[#10b9811f]",
           className,
         )}
       >
         <BadgeCheck
           className={cn(
             "h-5 w-5 shrink-0",
-            verification.simulated ? "text-amber-300" : "text-emerald-300",
+            verification.simulated ? "text-fl-warn" : "text-fl-emerald",
           )}
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium fg">
             {verification.simulated ? "Simulated human check" : "Operator verified"}
           </p>
-          <p className="data-mono truncate text-slate-400" title={verification.nullifierHash}>
+          <p className="data-mono truncate fg-2" title={verification.nullifierHash}>
             nullifier {verification.nullifierHash}
           </p>
           {verification.hashscan && verification.txHash ? (
@@ -359,9 +359,9 @@ export function WorldIdGate({
             </p>
           ) : null}
         </div>
-        <Badge tone={verification.simulated ? "demo" : "success"}>
+        <Pill tone={verification.simulated ? "warn" : "emerald"} dashed={verification.simulated}>
           {verification.simulated ? "Simulated" : verification.verificationLevel}
-        </Badge>
+        </Pill>
         {onReset ? (
           <Button variant="ghost" size="sm" onClick={onReset}>
             Reset
@@ -373,20 +373,28 @@ export function WorldIdGate({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-aether-cyan" aria-hidden="true" />
-          <p className="text-sm font-medium text-white">Human operator required</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            aria-hidden="true"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-fl-border bg-fl-raised text-fl-accent"
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium fg">World ID proof of personhood</p>
+            <p className="mt-1 max-w-prose text-xs leading-relaxed fg-2">
+              Sweeping agency margin is gated on a World ID proof, committed to the operator
+              address so each nullifier can only claim once.
+            </p>
+          </div>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-slate-400">
-          Sweeping agency margin is gated on a World ID proof of personhood, committed to the
-          operator address so a nullifier can only claim once.
-        </p>
         <Button
-          className="mt-3 w-full"
+          className="w-full sm:w-auto"
           onClick={() => void beginVerification()}
           loading={phase === "preparing" || phase === "verifying"}
           size="md"
+          variant="primary"
         >
           <ScanFace className="h-4 w-4" aria-hidden="true" />
           Verify with World ID
@@ -399,11 +407,11 @@ export function WorldIdGate({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2 text-[0.72rem] leading-relaxed text-amber-200/85"
+            className="flex items-start gap-2 rounded-[10px] border border-[#f59e0b40] bg-fl-warnSoft px-3 py-2 text-xs leading-relaxed text-[color:var(--c-warn-ink)]"
           >
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>
-              <span className="font-medium">Falling back to a simulated check.</span> {message}
+              <span className="font-semibold">Falling back to a simulated check.</span> {message}
             </span>
           </motion.p>
         ) : null}

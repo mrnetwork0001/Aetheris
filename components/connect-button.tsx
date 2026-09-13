@@ -8,8 +8,8 @@ import { cn, shortAddress } from "@/lib/utils";
 import { DEMO_OPERATOR_ADDRESS } from "./aetheris-data";
 import { AgentAvatar } from "./identity";
 import { PRIVY_ENABLED } from "./providers";
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Pill } from "./ui/pill";
 import { useEnsProfile } from "./use-ens";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -20,9 +20,11 @@ interface WalletMenuProps {
   address: string;
   onDisconnect: () => void;
   demo?: boolean;
+  /** Full-width white sidebar variant; the menu opens upward. */
+  block?: boolean;
 }
 
-function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
+function WalletMenu({ address, onDisconnect, demo = false, block = false }: WalletMenuProps) {
   const [open, setOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -63,22 +65,28 @@ function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={cn("relative", block && "w-full")}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
         className={cn(
-          "group inline-flex h-10 items-center gap-2 rounded-xl border border-white/10",
-          "bg-white/[0.05] pl-1.5 pr-3 text-sm text-white transition hover:bg-white/[0.09]",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aether-cyan",
+          "inline-flex h-10 items-center gap-2 rounded-[10px] border text-sm font-medium transition-colors",
+          block
+            ? "w-full justify-start border-white bg-white pl-1.5 pr-3 text-black hover:bg-[#e6e6e6]"
+            : "border-fl-borderHi bg-fl-raised pl-1.5 pr-3 text-white hover:bg-fl-border",
         )}
       >
         <AgentAvatar seed={address} label={ensName} avatarUrl={ens.data?.avatar} size="sm" />
-        <span className="max-w-[9rem] truncate font-medium">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
         {demo ? (
-          <span className="hidden text-[0.6rem] uppercase tracking-wider text-amber-300 sm:inline">
+          <span
+            className={cn(
+              "font-mono text-[0.6rem] uppercase tracking-[0.08em]",
+              block ? "text-[#92400e]" : "text-fl-warn",
+            )}
+          >
             demo
           </span>
         ) : null}
@@ -89,23 +97,19 @@ function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
           role="menu"
           aria-label="Wallet"
           className={cn(
-            "absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-white/10",
-            "bg-aether-deep/95 p-1.5 shadow-2xl backdrop-blur-xl",
+            "absolute z-50 overflow-hidden rounded-xl border border-fl-borderHi bg-fl-raised p-1.5 shadow-2xl",
+            block ? "bottom-full left-0 mb-2 w-full min-w-[16rem]" : "right-0 mt-2 w-72",
           )}
         >
-          <div className="rounded-lg bg-white/[0.03] px-3 py-3">
-            <p className="text-[0.65rem] uppercase tracking-wider text-slate-400">
-              {demo ? "Demo session" : "Privy embedded wallet"}
-            </p>
-            <p className="mt-1 break-all mono text-xs text-slate-300">{address}</p>
-            {ens.isLoading ? (
-              <p className="mt-2 text-[0.7rem] text-slate-500">Resolving ENS…</p>
-            ) : null}
+          <div className="rounded-[10px] bg-fl-card px-3 py-3">
+            <p className="mono-label">{demo ? "Demo session" : "Privy embedded wallet"}</p>
+            <p className="mt-1.5 break-all font-mono text-[11px] leading-relaxed fg-2">{address}</p>
+            {ens.isLoading ? <p className="mt-2 text-[11px] fg-3">Resolving ENS…</p> : null}
             {ensName ? (
-              <p className="mt-2 text-[0.7rem] text-aether-cyan">Resolved via ENS: {ensName}</p>
+              <p className="mt-2 text-[11px] text-fl-accent">Resolved via ENS: {ensName}</p>
             ) : null}
             {!ens.isLoading && !ensName ? (
-              <p className="mt-2 text-[0.7rem] text-slate-500">No reverse ENS record</p>
+              <p className="mt-2 text-[11px] fg-3">No reverse ENS record</p>
             ) : null}
           </div>
 
@@ -113,10 +117,10 @@ function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
             type="button"
             role="menuitem"
             onClick={copyAddress}
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-white/[0.06] hover:text-white"
+            className="mt-1 flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-sm fg-2 transition-colors hover:bg-fl-border hover:text-white"
           >
             {copied ? (
-              <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+              <Check className="h-4 w-4 text-fl-emerald" aria-hidden="true" />
             ) : (
               <Copy className="h-4 w-4" aria-hidden="true" />
             )}
@@ -130,7 +134,7 @@ function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
               setOpen(false);
               onDisconnect();
             }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-rose-500/15 hover:text-rose-200"
+            className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-sm fg-2 transition-colors hover:bg-[#ef44441f] hover:text-fl-rose"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
             Disconnect
@@ -145,13 +149,13 @@ function WalletMenu({ address, onDisconnect, demo = false }: WalletMenuProps) {
    Privy-backed variant
    ──────────────────────────────────────────────────────────────────────────── */
 
-function PrivyConnectButton() {
+function PrivyConnectButton({ block = false }: { block?: boolean }) {
   const { ready, authenticated, user, login, logout } = usePrivy();
 
   if (!ready) {
     return (
       <div
-        className="h-10 w-36 animate-pulse rounded-xl border border-white/10 bg-white/[0.04]"
+        className={cn("fl-skeleton h-10 rounded-[10px]", block ? "w-full" : "w-36")}
         role="status"
         aria-label="Loading wallet"
       />
@@ -162,36 +166,44 @@ function PrivyConnectButton() {
 
   if (!authenticated || !address) {
     return (
-      <Button onClick={() => login()} size="md">
+      <Button onClick={() => login()} size="md" variant="primary" className={cn(block && "w-full")}>
         <Fingerprint className="h-4 w-4" aria-hidden="true" />
         Sign in with passkey
       </Button>
     );
   }
 
-  return <WalletMenu address={address} onDisconnect={() => void logout()} />;
+  return <WalletMenu address={address} onDisconnect={() => void logout()} block={block} />;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
    Fallback used when NEXT_PUBLIC_PRIVY_APP_ID is absent
    ──────────────────────────────────────────────────────────────────────────── */
 
-function DemoConnectButton() {
+function DemoConnectButton({ block = false }: { block?: boolean }) {
   const [address, setAddress] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
   if (address) {
-    return <WalletMenu address={address} onDisconnect={() => setAddress(null)} demo />;
+    return (
+      <WalletMenu address={address} onDisconnect={() => setAddress(null)} demo block={block} />
+    );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Badge tone="demo" className="hidden lg:inline-flex" title="NEXT_PUBLIC_PRIVY_APP_ID is unset">
+    <div className={cn("flex gap-2", block ? "flex-col" : "items-center")}>
+      <Pill
+        tone="warn"
+        dashed
+        className={cn(!block && "hidden lg:inline-flex", block && "self-start")}
+        title="NEXT_PUBLIC_PRIVY_APP_ID is unset"
+      >
         Privy not configured
-      </Badge>
+      </Pill>
       <Button
-        variant="secondary"
+        variant={block ? "primary" : "secondary"}
         loading={pending}
+        className={cn(block && "w-full")}
         onClick={() => {
           setPending(true);
           window.setTimeout(() => {
@@ -207,10 +219,15 @@ function DemoConnectButton() {
   );
 }
 
+export interface ConnectButtonProps {
+  /** Full-width white button for the sidebar card. */
+  block?: boolean;
+}
+
 /**
  * Hooks cannot be called conditionally, so the two modes are separate
  * components and the branch happens on a build-time constant.
  */
-export function ConnectButton() {
-  return PRIVY_ENABLED ? <PrivyConnectButton /> : <DemoConnectButton />;
+export function ConnectButton({ block = false }: ConnectButtonProps = {}) {
+  return PRIVY_ENABLED ? <PrivyConnectButton block={block} /> : <DemoConnectButton block={block} />;
 }
