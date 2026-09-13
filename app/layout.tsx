@@ -56,15 +56,6 @@ export const metadata: Metadata = {
     type: "website",
   },
   robots: { index: true, follow: true },
-  icons: {
-    icon: [
-      { url: "/brand/mark-light-32.png", type: "image/png", sizes: "32x32", media: "(prefers-color-scheme: light)" },
-      { url: "/brand/mark-light-64.png", type: "image/png", sizes: "64x64", media: "(prefers-color-scheme: light)" },
-      { url: "/brand/mark-dark-32.png", type: "image/png", sizes: "32x32", media: "(prefers-color-scheme: dark)" },
-      { url: "/brand/mark-dark-64.png", type: "image/png", sizes: "64x64", media: "(prefers-color-scheme: dark)" },
-    ],
-    apple: "/brand/apple-touch-icon.png",
-  },
 };
 
 export const viewport: Viewport = {
