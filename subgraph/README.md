@@ -109,7 +109,7 @@ Then re-run codegen + build.
   `AetherisTreasury` are separate deployments (see *Which contract emits what* above).
   Don't paste the same address into both.
 - `networks.json` carries the same values for `graph deploy --network hedera-testnet`.
-  ⚠️ That flag **rewrites `subgraph.yaml` in place and strips every comment from it**. If you
+  That flag **rewrites `subgraph.yaml` in place and strips every comment from it**. If you
   use it, keep the file under version control so you can see what changed.
 
 ---

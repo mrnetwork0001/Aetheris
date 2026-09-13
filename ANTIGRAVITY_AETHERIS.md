@@ -1,4 +1,4 @@
-# 🌌 ANTIGRAVITY_AETHERIS — Persistent Project Context Directive
+# ANTIGRAVITY_AETHERIS — Persistent Project Context Directive
 
 > **Project Name:** AETHERIS  
 > **Target Event:** ETHOnline 2026 (ETHGlobal)  
@@ -8,7 +8,7 @@
 
 ---
 
-## 📌 Core Directives for Aetheris Development
+## Core Directives for Aetheris Development
 
 1. **Master Spec Source of Truth:**  
    Always consult [AETHERIS_PROJECT_SPEC.md](file:///Users/mrnetwork/Aetheris/AETHERIS_PROJECT_SPEC.md).

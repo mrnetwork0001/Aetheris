@@ -1,4 +1,4 @@
-# 🌌 AETHERIS — Autonomous DeAI Agency & Micro-Treasury Operating System
+# AETHERIS — Autonomous DeAI Agency & Micro-Treasury Operating System
 
 > **ETHOnline 2026 Master Project Blueprint ($100,000 Total Prize Pool)**  
 > **Target Bounties ($54,000 Total Focus):** Hedera ($15,000 EVM/HTS/HCS) + The Graph ($15,000 Subgraphs) + World ID ($7,000 Proof of Personhood) + 1inch ($7,000 Swaps) + Privy ($5,000 Passkey Wallets) + ENS ($5,000 Identity)  
@@ -8,7 +8,7 @@
 
 ---
 
-## 📌 Executive Summary
+## Executive Summary
 
 **Aetheris** is an **Autonomous DeAI Agency & Micro-Treasury Operating System** built to bridge decentralized AI inference with sub-second, enterprise-grade on-chain execution and verifiable human governance.
 
@@ -16,7 +16,7 @@ Instead of static AI chatbots or passive API wrappers, **Aetheris** enables user
 
 ---
 
-## 🎯 Strategic Moat & Winning Formula (Targeting $54k Bounties)
+## Strategic Moat & Winning Formula (Targeting $54k Bounties)
 
 | Sponsor Track | Technical Integration | Strategic Impact for Judging |
 | :--- | :--- | :--- |
@@ -29,7 +29,7 @@ Instead of static AI chatbots or passive API wrappers, **Aetheris** enables user
 
 ---
 
-## 🏗️ System Architecture & Workflow
+## System Architecture & Workflow
 
 ```
                                   ┌──────────────────────────────┐
@@ -73,5 +73,5 @@ Instead of static AI chatbots or passive API wrappers, **Aetheris** enables user
 
 ---
 
-## 📄 License
+## License
 Apache 2.0 Open Source

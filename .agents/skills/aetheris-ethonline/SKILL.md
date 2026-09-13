@@ -3,17 +3,17 @@ name: aetheris-ethonline
 description: Architecture, guidelines, contract specs, and prize strategy for Aetheris (Autonomous DeAI Agency & Micro-Treasury OS) built for ETHOnline 2026 targeting Hedera, The Graph, World ID, 1inch, Privy, and ENS bounties.
 ---
 
-# 🌌 Aetheris — ETHOnline 2026 Skill & Execution Guide
+# Aetheris — ETHOnline 2026 Skill & Execution Guide
 
 Use this skill whenever working on, reviewing, or developing **Aetheris** — the Autonomous DeAI Agency & Micro-Treasury Operating System built for ETHOnline 2026.
 
-## 📌 Project Overview & Target
+## Project Overview & Target
 - **Target Event:** ETHOnline 2026 (ETHGlobal)
 - **Target Bounties ($54,000 Focus):** Hedera ($15,000) + The Graph ($15,000) + World ID ($7,000) + 1inch ($7,000) + Privy ($5,000) + ENS ($5,000)
 - **Primary Track:** Open Track / DeAI / Autonomous Agents
 - **Core Tech Stack:** Hedera EVM (Chain ID 296) + HTS + HCS + The Graph + World ID + 1inch + Privy + Next.js 14
 
-## 🏗️ Technical Architecture Rules
+## Technical Architecture Rules
 
 ### 1. Hedera EVM & HTS/HCS Integration (`contracts/AetherisTreasury.sol`)
 - Deploy core vault on Hedera EVM Testnet.
@@ -29,7 +29,7 @@ Use this skill whenever working on, reviewing, or developing **Aetheris** — th
 ### 4. 1inch Swap Integration (`lib/oneinch.ts`)
 - Route multi-chain agent asset rebalancing swaps via 1inch Swap API v6.0.
 
-## 🚨 Submission Checklist
+## Submission Checklist
 - Deployed contracts on Hedera EVM Testnet.
 - Live Subgraph on The Graph Studio.
 - Public GitHub repo under Apache 2.0 / MIT License.

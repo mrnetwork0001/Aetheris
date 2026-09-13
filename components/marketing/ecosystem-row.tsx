@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 import { Band } from "@/components/ui/section-band";
 import { Card } from "@/components/ui/card";
@@ -88,7 +88,7 @@ const SPONSORS: readonly Sponsor[] = [
 
 function StatusPill({ status }: { status: Status }) {
   return status === "integrated" ? (
-    <Pill tone="on">✓ Integrated</Pill>
+    <Pill tone="on"><Check className="h-3 w-3" aria-hidden="true" /> Integrated</Pill>
   ) : (
     <Pill tone="warn">◌ Needs key</Pill>
   );

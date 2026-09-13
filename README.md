@@ -1,4 +1,11 @@
-# 🌌 Aetheris - Autonomous DeAI Agency & Micro-Treasury Operating System
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/brand/wordmark-dark.png">
+    <img src="public/brand/wordmark-light.png" alt="Aetheris" width="360">
+  </picture>
+</p>
+
+<h1 align="center">Autonomous DeAI Agency &amp; Micro-Treasury Operating System</h1>
 
 > Built for **ETHOnline 2026** by ETHGlobal  
 > **Target Bounties ($54,000 Total Focus):** Hedera ($15,000) + The Graph ($15,000) + World ID ($7,000) + 1inch ($7,000) + Privy ($5,000) + ENS ($5,000)  
@@ -8,7 +15,7 @@
 
 ---
 
-## 📌 Overview
+## Overview
 
 **Aetheris** is an **Autonomous DeAI Agency & Micro-Treasury Operating System** built to bridge decentralized AI inference with sub-second, enterprise-grade on-chain execution and verifiable human governance.
 
@@ -20,7 +27,7 @@
 
 ---
 
-## 🔗 Deployed on Hedera Testnet (chain 296)
+## Deployed on Hedera Testnet (chain 296)
 
 | Contract | Address | Explorer |
 | :--- | :--- | :--- |
@@ -44,7 +51,7 @@ margin 1.39 - reconciled independently by the subgraph from indexed events.
 
 ---
 
-## 📊 The Graph - why this subgraph is self-hosted
+## The Graph - why this subgraph is self-hosted
 
 **The Graph's hosted service does not support Hedera.** Hedera is absent from
 the network registry that ships with `graph-cli` and from the live
@@ -81,7 +88,7 @@ GraphQL endpoint: `http://localhost:8100/subgraphs/name/aetheris`
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### Prerequisites
 - Node.js 18+
@@ -131,7 +138,7 @@ npm run dev                # http://localhost:3000
 
 ---
 
-## 🧩 Integration status
+## Integration status
 
 Every panel without a live backend is badged **DEMO DATA** in the UI with the
 missing variable named inline - nothing is presented as chain data that isn't.
@@ -158,5 +165,5 @@ fully active** - a consumed nullifier is still burned and cannot be reused.
 
 ---
 
-## 📄 License
+## License
 Apache 2.0 Open Source

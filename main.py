@@ -9,7 +9,7 @@ import sys
 
 def main():
     print("==========================================================================")
-    print(" 🌌 AETHERIS — Autonomous DeAI Agency & Micro-Treasury OS")
+    print(" AETHERIS — Autonomous DeAI Agency & Micro-Treasury OS")
     print(" Powered by Hedera EVM (HTS/HCS) + The Graph + World ID + 1inch + Privy")
     print("==========================================================================")
     print(" Status: Project environment & master blueprint updated. Ready to build.")
