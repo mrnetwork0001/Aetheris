@@ -1,21 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Montserrat } from "next/font/google";
 
 import { Providers } from "@/components/providers";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
-import { Starfield } from "@/components/starfield";
 
 import "./globals.css";
 
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  display: "swap",
+  variable: "--font-montserrat",
+});
+
 const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-inter",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-jetbrains",
 });
@@ -53,32 +59,31 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#05060f",
+  themeColor: "#000000",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
 };
 
+/**
+ * Root layout holds only the document shell: fonts, providers and the skip
+ * link. Headers, footers and the app sidebar live in the route-group layouts,
+ * which must render the `#main` landmark the skip link targets.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen bg-aether-void text-slate-300 antialiased">
+    <html
+      lang="en"
+      className={`${montserrat.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="min-h-screen bg-fl-bg text-fl-fg antialiased">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-aether-glow focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-[10px] focus:bg-white focus:px-4 focus:py-2 focus:font-display focus:text-[0.8rem] focus:font-bold focus:text-black"
         >
           Skip to content
         </a>
-        <Providers>
-          <Starfield />
-          <div className="relative z-10 flex min-h-screen flex-col">
-            <SiteHeader />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <SiteFooter />
-          </div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
