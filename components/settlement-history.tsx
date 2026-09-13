@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Receipt } from "lucide-react";
 
-import { shortAddress } from "@/lib/utils";
 import type { DataSource, SettlementRow } from "./aetheris-data";
 import { DataSourceBadge, FallbackNote } from "./data-source-badge";
-import { formatDate, formatToken, relativeTime } from "./format";
-import { Badge } from "./ui/badge";
-import { Card, CardHeader, CardTitle } from "./ui/card";
+import { formatDate, formatToken, formatUsd, relativeTime, toNumber } from "./format";
+import { Identity } from "./identity";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import { EmptyState } from "./ui/empty-state";
+import { Pill } from "./ui/pill";
+import { Table, TBody, TD, TH, THead, TR } from "./ui/table";
 import { useNow } from "./use-now";
 
 export interface SettlementHistoryProps {
@@ -17,106 +19,104 @@ export interface SettlementHistoryProps {
   reason?: string;
 }
 
+/**
+ * Micro-settlement ledger: one row per paid sub-task, newest first. Amounts are
+ * JetBrains Mono; the settlement rail is an accent `HTS` pill when the payout
+ * went through the Hedera Token Service and a muted `ERC-20` pill otherwise.
+ */
 export function SettlementHistory({ settlements, source, reason }: SettlementHistoryProps) {
   const now = useNow();
 
   return (
-    <Card className="edge-lit">
+    <Card flush>
       <CardHeader>
         <div>
           <CardTitle as="h2">Settlement history</CardTitle>
-          <p className="mt-1 text-xs text-slate-500">
-            Programmatic sub-agent payouts, most recent first.
-          </p>
+          <CardDescription>Programmatic sub-agent payouts, most recent first.</CardDescription>
         </div>
         <DataSourceBadge source={source} reason={reason} />
       </CardHeader>
 
       {settlements.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-slate-500">
-          No settlements recorded for this agency yet.
-        </p>
+        <EmptyState
+          icon={<Receipt />}
+          title="No settlements yet"
+          body="Every micro-settlement the agency pays a sub-agent lands here with its rail, amount and transaction."
+          link={{ href: "/dashboard#jobs", label: "Watch the job pipeline" }}
+        />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[46rem] border-collapse text-left">
-            <caption className="sr-only">
-              Micro-settlements paid to sub-agents, newest first
-            </caption>
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[0.66rem] uppercase tracking-wider text-slate-400">
-                <th scope="col" className="px-5 py-2.5 font-medium">
-                  Job · task
-                </th>
-                <th scope="col" className="px-5 py-2.5 font-medium">
-                  Sub-agent
-                </th>
-                <th scope="col" className="px-5 py-2.5 text-right font-medium">
-                  Amount
-                </th>
-                <th scope="col" className="px-5 py-2.5 font-medium">
-                  Rail
-                </th>
-                <th scope="col" className="px-5 py-2.5 font-medium">
-                  Settled
-                </th>
-                <th scope="col" className="px-5 py-2.5 font-medium">
-                  Transaction
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {settlements.map((row) => (
-                <tr
-                  key={`${row.jobId}-${row.taskId}-${row.txId}`}
-                  className="transition-colors hover:bg-white/[0.02]"
-                >
-                  <td className="whitespace-nowrap px-5 py-3 data-mono text-slate-400">
-                    #{row.jobId} · {row.taskId}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="block truncate text-xs font-medium text-slate-200">
-                      {row.subAgentName || shortAddress(row.subAgent)}
-                    </span>
-                    <span className="block truncate data-mono text-slate-500">
-                      {shortAddress(row.subAgent)}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-right text-xs font-semibold tabular-nums text-aether-gold">
+        <Table className="min-w-[48rem]">
+          <caption className="sr-only">Micro-settlements paid to sub-agents, newest first</caption>
+          <THead>
+            <tr>
+              <TH>Job · task</TH>
+              <TH>Sub-agent</TH>
+              <TH align="right">Amount</TH>
+              <TH>Rail</TH>
+              <TH>Settled</TH>
+              <TH>Transaction</TH>
+            </tr>
+          </THead>
+          <TBody>
+            {settlements.map((row) => (
+              <TR key={`${row.jobId}-${row.taskId}-${row.txId}`}>
+                <TD mono className="whitespace-nowrap fg-2">
+                  #{row.jobId} · {row.taskId}
+                </TD>
+                <TD className="min-w-[12rem]">
+                  <Identity seed={row.subAgent} name={row.subAgentName || null} size="sm" />
+                </TD>
+                <TD align="right" className="whitespace-nowrap">
+                  <span className="block font-mono text-[0.85rem] font-semibold tabular-nums fg">
                     {formatToken(row.amountRaw, row.decimals, row.tokenSymbol)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <Badge tone={row.viaHts ? "cyan" : "neutral"}>
-                      {row.viaHts ? "HTS" : "ERC-20"}
-                    </Badge>
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-xs text-slate-400">
+                  </span>
+                  <span className="block font-mono text-[11px] tabular-nums fg-3">
+                    {formatUsd(toNumber(row.amountRaw, row.decimals))}
+                  </span>
+                </TD>
+                <TD>
+                  {row.viaHts ? (
+                    <Pill tone="on" title="Settled through the Hedera Token Service">
+                      HTS
+                    </Pill>
+                  ) : (
+                    <Pill tone="muted" title="Settled through the ERC-20 fallback">
+                      ERC-20
+                    </Pill>
+                  )}
+                </TD>
+                <TD className="whitespace-nowrap text-[12px] fg-2">
+                  <time dateTime={new Date(row.timestamp).toISOString()} title={formatDate(row.timestamp)}>
                     {now === null ? formatDate(row.timestamp) : relativeTime(row.timestamp, now)}
-                  </td>
-                  <td className="px-5 py-3">
-                    {row.txId ? (
-                      <a
-                        href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(row.txId)}`}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="inline-flex max-w-[13rem] items-center gap-1 data-mono text-aether-cyan/80 transition-colors hover:text-aether-cyan"
-                      >
-                        <span className="truncate">{row.txId}</span>
-                        <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden="true" />
-                      </a>
-                    ) : (
-                      <span className="data-mono text-slate-500">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </time>
+                </TD>
+                <TD>
+                  {row.txId ? (
+                    <a
+                      href={`https://hashscan.io/testnet/transaction/${encodeURIComponent(row.txId)}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex max-w-[13rem] items-center gap-1 font-mono text-[0.78rem] tabular-nums accent-ink transition-colors hover:underline"
+                    >
+                      <span className="truncate">{row.txId}</span>
+                      <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <span className="sr-only">(opens HashScan)</span>
+                    </a>
+                  ) : (
+                    <span className="font-mono text-[0.78rem] fg-3">—</span>
+                  )}
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
       )}
 
-      <div className="px-5 pb-4">
-        <FallbackNote source={source} reason={reason} />
-      </div>
+      {source === "demo" ? (
+        <CardFooter className="block [&>p]:mt-0">
+          <FallbackNote source={source} reason={reason} />
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }

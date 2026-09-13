@@ -3,9 +3,13 @@
 import * as React from "react";
 import { AlertOctagon, RotateCcw } from "lucide-react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
+/**
+ * Root error boundary. Renders in place of every route-group layout, so it
+ * paints its own dark band and `#main` landmark for the skip link.
+ */
 export default function GlobalError({
   error,
   reset,
@@ -19,24 +23,37 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="aether-container flex min-h-[60vh] items-center justify-center py-20">
-      <Card className="max-w-lg p-8 text-center">
-        <span className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl border border-rose-400/30 bg-rose-500/10 text-rose-300">
-          <AlertOctagon className="h-5 w-5" aria-hidden="true" />
+    <main
+      id="main"
+      className="band band--dark dot-grid flex min-h-screen items-center justify-center"
+    >
+      <div className="fl-container flex flex-col items-center text-center">
+        <Logo size={32} />
+        <span
+          aria-hidden="true"
+          className="mt-10 inline-flex h-12 w-12 items-center justify-center rounded-[14px] border border-[#ef444440] bg-[#ef44441f] text-fl-rose"
+        >
+          <AlertOctagon className="h-5 w-5" />
         </span>
-        <h1 className="mt-4 text-lg font-semibold text-white">Something broke in orbit</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          A data source failed in a way the page could not recover from. The integrations degrade
-          to demo fixtures wherever possible — this one did not.
+        <p className="mono-label mt-6">Route error</p>
+        <h1 className="display-2 mt-3 max-w-2xl fg">Something broke mid-settlement.</h1>
+        <p className="lede mt-4 max-w-xl">
+          A data source failed in a way the page could not recover from. The integrations degrade to
+          demo fixtures wherever possible — this one did not.
         </p>
         {error.digest ? (
-          <p className="mt-3 data-mono text-slate-500">digest {error.digest}</p>
+          <p className="mt-4 font-mono text-[0.78rem] tabular-nums fg-3">digest {error.digest}</p>
         ) : null}
-        <Button className="mt-6" onClick={reset}>
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Try again
-        </Button>
-      </Card>
-    </div>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button variant="primary" onClick={reset}>
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            Try again
+          </Button>
+          <Button variant="secondary" href="/dashboard">
+            Back to Mission Control
+          </Button>
+        </div>
+      </div>
+    </main>
   );
 }
