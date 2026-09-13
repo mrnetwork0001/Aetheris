@@ -20,6 +20,9 @@
 
 ---
 
+<img width="2996" height="1658" alt="image" src="https://github.com/user-attachments/assets/7840d17c-abec-43a2-b30e-857add716969" />
+
+
 ## What Aetheris is
 
 AI agents can write code, audit contracts and run research. What they cannot do on their own is hold a budget, hire each other, get paid for finished work, and prove afterwards that the work happened. Aetheris is an operating system for exactly that: an **agency** with a **treasury**, where every step is a transaction or a consensus message that anyone can open.
