@@ -98,17 +98,50 @@ async function submit(topicId, payload) {
  * @returns {Promise<{sequenceNumber:number, consensusTimestamp:string, contents:string}|null>}
  */
 async function mirrorMessage(topicId, sequenceNumber, { attempts = 15, delayMs = 2000 } = {}) {
+  const first = await mirrorRow(topicId, sequenceNumber, { attempts, delayMs });
+  if (!first) return null;
+  const info = first.chunk_info;
+  const total = info && Number(info.total) > 1 ? Number(info.total) : 1;
+  if (total === 1) {
+    return {
+      sequenceNumber: Number(first.sequence_number),
+      consensusTimestamp: first.consensus_timestamp,
+      contents: Buffer.from(first.message, "base64").toString("utf8"),
+      chunks: 1,
+    };
+  }
+  // A frame over 1,024 bytes is split by the SDK into consecutive messages that share
+  // initial_transaction_id. Walk to chunk 1, collect all `total` chunks, and join the
+  // raw bytes before decoding so a multibyte character split at a boundary survives.
+  const start = Number(first.sequence_number) - (Number(info.number) - 1);
+  const key = chunkKey(info);
+  const parts = [];
+  for (let n = 0; n < total; n++) {
+    const row = n === Number(info.number) - 1 ? first : await mirrorRow(topicId, start + n, { attempts, delayMs });
+    if (!row || chunkKey(row.chunk_info) !== key || Number(row.chunk_info.number) !== n + 1) {
+      throw new Error(`mirror node: chunk ${n + 1}/${total} of ${topicId}#${start} is missing or belongs to another frame`);
+    }
+    parts.push(Buffer.from(row.message, "base64"));
+  }
+  return {
+    sequenceNumber: start,
+    consensusTimestamp: first.consensus_timestamp,
+    contents: Buffer.concat(parts).toString("utf8"),
+    chunks: total,
+  };
+}
+
+function chunkKey(info) {
+  const id = info && info.initial_transaction_id;
+  return id ? `${id.account_id}@${id.transaction_valid_start}#${id.nonce || 0}` : null;
+}
+
+/** One raw mirror-node row, retried while the mirror catches up; null after `attempts` 404s. */
+async function mirrorRow(topicId, sequenceNumber, { attempts, delayMs }) {
   const url = `${MIRROR}/api/v1/topics/${topicId}/messages/${sequenceNumber}`;
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (res.ok) {
-      const m = await res.json();
-      return {
-        sequenceNumber: Number(m.sequence_number),
-        consensusTimestamp: m.consensus_timestamp,
-        contents: Buffer.from(m.message, "base64").toString("utf8"),
-      };
-    }
+    if (res.ok) return res.json();
     if (res.status !== 404) throw new Error(`mirror node ${res.status} for ${url}`);
     await new Promise((r) => setTimeout(r, delayMs));
   }

@@ -40,8 +40,25 @@ export type HcsMessage = {
   consensusTimestamp: string;
 };
 
+/**
+ * Chunk metadata the mirror node attaches to every message. HCS caps a message at
+ * 1,024 bytes; the SDK splits a larger payload into consecutive messages that share
+ * `initial_transaction_id`, numbered `1..total`. Single-chunk frames report `1/1`.
+ */
+type MirrorNodeChunkInfo = {
+  initial_transaction_id?: {
+    account_id?: string;
+    nonce?: number;
+    scheduled?: boolean;
+    transaction_valid_start?: string;
+  } | null;
+  number?: number;
+  total?: number;
+};
+
 /** Raw mirror-node message record (only the fields we consume are modelled). */
 type MirrorNodeMessage = {
+  chunk_info?: MirrorNodeChunkInfo | null;
   consensus_timestamp?: string;
   message?: string;
   sequence_number?: number | string;
@@ -61,18 +78,122 @@ type MirrorNodeMessagesResponse = {
  * @returns The decoded UTF-8 string, or `''` when decoding fails.
  */
 function decodeBase64(b64: string): string {
+  const bytes = decodeBase64Bytes(b64);
+  return bytes ? decodeUtf8(bytes) : '';
+}
+
+/**
+ * Decode base64 to raw bytes in either a Node or browser runtime.
+ *
+ * @returns The bytes, or `null` when the input is not valid base64.
+ */
+function decodeBase64Bytes(b64: string): Uint8Array | null {
   try {
-    if (typeof Buffer !== 'undefined') return Buffer.from(b64, 'base64').toString('utf8');
+    if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(b64, 'base64'));
     if (typeof atob === 'function') {
       const binary = atob(b64);
-      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
-      return new TextDecoder().decode(bytes);
+      return Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
     }
-    return '';
+    return null;
   } catch {
-    // A non-UTF-8 / malformed payload must not break the audit-log render.
+    return null;
+  }
+}
+
+/** UTF-8 decode that never throws - a malformed payload must not break the audit-log render. */
+function decodeUtf8(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder().decode(bytes);
+  } catch {
     return '';
   }
+}
+
+/** Identity of the multi-chunk frame a message belongs to, or `null` for single-chunk frames. */
+function chunkGroupKey(info: MirrorNodeChunkInfo | null | undefined): string | null {
+  const id = info?.initial_transaction_id;
+  const total = Number(info?.total ?? 1);
+  if (!id || !Number.isFinite(total) || total <= 1) return null;
+  return `${id.account_id ?? ''}@${id.transaction_valid_start ?? ''}#${id.nonce ?? 0}`;
+}
+
+/** A multi-chunk frame that could not be completed from the messages seen so far. */
+export type IncompleteHcsFrame = {
+  key: string;
+  /** Chunk numbers present. */
+  have: number[];
+  total: number;
+  /** Lowest sequence number among the chunks present. */
+  lowestSequence: number;
+};
+
+/**
+ * Merge multi-chunk messages back into whole frames.
+ *
+ * Chunks are concatenated as bytes in `number` order and decoded once, so a
+ * multibyte character split across a 1,024-byte boundary survives. The merged
+ * frame carries the sequence number and consensus timestamp of chunk 1, which is
+ * where an on-chain anchor (`hcsSequenceNumber`) points. Groups missing chunks are
+ * reported in `incomplete` and left out of `frames`; the caller decides whether to
+ * fetch the missing rows (page boundary) or drop the group (still being submitted).
+ *
+ * @param raw - Mirror-node rows in any order.
+ * @returns Whole frames sorted newest first, plus the incomplete groups.
+ */
+export function reassembleHcsChunks(raw: MirrorNodeMessage[]): {
+  frames: HcsMessage[];
+  incomplete: IncompleteHcsFrame[];
+} {
+  const frames: HcsMessage[] = [];
+  const groups = new Map<string, { total: number; parts: Map<number, MirrorNodeMessage> }>();
+
+  for (const m of raw) {
+    const key = chunkGroupKey(m.chunk_info);
+    if (key === null) {
+      frames.push({
+        sequenceNumber: m.sequence_number !== undefined ? String(m.sequence_number) : '0',
+        contents: m.message ? decodeBase64(m.message) : '',
+        consensusTimestamp: m.consensus_timestamp ?? '',
+      });
+      continue;
+    }
+    const total = Number(m.chunk_info?.total);
+    const number = Number(m.chunk_info?.number);
+    const group = groups.get(key) ?? { total, parts: new Map<number, MirrorNodeMessage>() };
+    if (Number.isFinite(number) && !group.parts.has(number)) group.parts.set(number, m);
+    groups.set(key, group);
+  }
+
+  const incomplete: IncompleteHcsFrame[] = [];
+  for (const [key, group] of groups) {
+    const have = [...group.parts.keys()].sort((a, b) => a - b);
+    const complete = have.length === group.total && have.every((n, i) => n === i + 1);
+    if (!complete) {
+      const lowestSequence = Math.min(
+        ...[...group.parts.values()].map((m) => Number(m.sequence_number ?? Number.POSITIVE_INFINITY)),
+      );
+      incomplete.push({ key, have, total: group.total, lowestSequence });
+      continue;
+    }
+    const chunks = have.map((n) => group.parts.get(n) as MirrorNodeMessage);
+    const byteParts = chunks.map((m) => (m.message ? decodeBase64Bytes(m.message) : new Uint8Array()));
+    if (byteParts.some((b) => b === null)) continue;
+    const joined = new Uint8Array(byteParts.reduce((n, b) => n + (b as Uint8Array).length, 0));
+    let offset = 0;
+    for (const b of byteParts as Uint8Array[]) {
+      joined.set(b, offset);
+      offset += b.length;
+    }
+    const first = chunks[0] as MirrorNodeMessage;
+    frames.push({
+      sequenceNumber: first.sequence_number !== undefined ? String(first.sequence_number) : '0',
+      contents: decodeUtf8(joined),
+      consensusTimestamp: first.consensus_timestamp ?? '',
+    });
+  }
+
+  frames.sort((a, b) => Number(b.sequenceNumber) - Number(a.sequenceNumber));
+  return { frames, incomplete };
 }
 
 /**
@@ -222,12 +343,36 @@ export async function readHcsMessages(
 
   const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 100) : 25;
   const base = optionalEnv('HEDERA_MIRROR_NODE_URL', HEDERA_MIRROR_NODE_BASE).replace(/\/+$/, '');
-  // Over-fetch a little so dropping voided frames still yields `safeLimit` rows.
-  const fetchLimit = Math.min(safeLimit + CORRECTION_OVERFETCH, 100);
-  const url =
-    `${base}/api/v1/topics/${encodeURIComponent(resolvedTopicId)}/messages` +
-    `?limit=${fetchLimit}&order=desc`;
+  // Over-fetch so dropping voided frames and merging chunked ones still yields `safeLimit` rows.
+  const fetchLimit = Math.min(safeLimit + CORRECTION_OVERFETCH + CHUNK_OVERFETCH, 100);
+  const messagesUrl = `${base}/api/v1/topics/${encodeURIComponent(resolvedTopicId)}/messages`;
 
+  const rows = await fetchMirrorMessages(`${messagesUrl}?limit=${fetchLimit}&order=desc`);
+  let { frames, incomplete } = reassembleHcsChunks(rows);
+
+  // A multi-chunk frame cut by the page boundary has its earlier chunks just below the
+  // oldest row fetched. One bounded follow-up query completes those groups; a group
+  // that is still being submitted (later chunks not yet at consensus) stays dropped.
+  const boundary = incomplete.filter((g) => g.have[0] !== 1 && Number.isFinite(g.lowestSequence));
+  if (boundary.length > 0) {
+    const oldest = Math.min(...boundary.map((g) => g.lowestSequence));
+    const missing = boundary.reduce((n, g) => n + (g.total - g.have.length), 0);
+    const extra = await fetchMirrorMessages(
+      `${messagesUrl}?sequencenumber=lt:${oldest}&limit=${Math.min(missing + 2, 100)}&order=desc`,
+    );
+    ({ frames, incomplete } = reassembleHcsChunks([...rows, ...extra]));
+  }
+
+  return applyHcsCorrections(frames).slice(0, safeLimit);
+}
+
+/**
+ * GET one page of topic messages from the mirror node.
+ *
+ * @returns The raw rows; an empty list when the topic has no messages yet (404).
+ * @throws {HederaError} On network failure, non-404 HTTP errors, or malformed JSON.
+ */
+async function fetchMirrorMessages(url: string): Promise<MirrorNodeMessage[]> {
   let response: Response;
   try {
     response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
@@ -246,26 +391,21 @@ export async function readHcsMessages(
     throw new HederaError('mirror node read', `HTTP ${response.status}: ${text.slice(0, 300)}`);
   }
 
-  let payload: MirrorNodeMessagesResponse;
   try {
-    payload = JSON.parse(text) as MirrorNodeMessagesResponse;
+    return (JSON.parse(text) as MirrorNodeMessagesResponse).messages ?? [];
   } catch (cause) {
     throw new HederaError(
       'mirror node read',
       `response was not valid JSON - ${cause instanceof Error ? cause.message : String(cause)}`,
     );
   }
-
-  const decoded: HcsMessage[] = (payload.messages ?? []).map((m) => ({
-    sequenceNumber: m.sequence_number !== undefined ? String(m.sequence_number) : '0',
-    contents: m.message ? decodeBase64(m.message) : '',
-    consensusTimestamp: m.consensus_timestamp ?? '',
-  }));
-  return applyHcsCorrections(decoded).slice(0, safeLimit);
 }
 
 /** Extra rows fetched beyond `limit` to compensate for frames a Correction voids. */
 const CORRECTION_OVERFETCH = 10;
+
+/** Extra rows fetched because a chunked frame occupies several rows but yields one message. */
+const CHUNK_OVERFETCH = 20;
 
 /** Shape of an append-only correction frame on the audit topic. */
 export type HcsCorrection = {

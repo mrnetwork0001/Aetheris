@@ -195,6 +195,7 @@ export function eventTone(event: string): EventTone {
     case "TaskCompleted":
       return "success";
     case "TreasuryRebalanced":
+    case "Deliverable":
       return "glow";
     case "JobCreated":
     case "SubAgentAssigned":

@@ -268,8 +268,10 @@ export default function AuditLogPage() {
       <H3 id="how-readers-apply-corrections">How readers apply corrections</H3>
       <P>
         <Code>readHcsMessages</Code> in <Code>lib/hedera.ts</Code> fetches the newest frames from the
-        mirror node, decodes each base64 payload, and passes the list through{" "}
-        <Code>applyHcsCorrections</Code>:
+        mirror node, decodes each base64 payload, reassembles any frame the SDK split into 1,024-byte
+        chunks (the chunks share an <Code>initial_transaction_id</Code>; the whole frame keeps the
+        sequence number of chunk 1, which is where an on-chain anchor points), and passes the list
+        through <Code>applyHcsCorrections</Code>:
       </P>
       <Pre title="lib/hedera.ts">{APPLY_CORRECTIONS}</Pre>
       <UL>
