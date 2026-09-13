@@ -30,6 +30,14 @@ export interface SubTask {
   status: TaskStatus;
   /** HCS sequence number that anchors the completion receipt. */
   hcsSequenceNumber?: string;
+  /** HCS topic the sequence number belongs to (e.g. `0.0.10518320`). */
+  hcsTopicId?: string;
+  /**
+   * Mirror-node verification of `hcsTopicId`/`hcsSequenceNumber`:
+   * `true` = the message exists on the mirror node, `false` = the mirror node
+   * returned 404 (topic or message not found), `undefined` = not checked.
+   */
+  hcsAnchorVerified?: boolean;
   /** Milliseconds from assignment to on-chain settlement. */
   settlementMs?: number;
 }
@@ -68,6 +76,28 @@ export interface AgencyStats {
   agency: string;
   ensName: string | null;
   operator: string;
+  /**
+   * World ID status of the operator as indexed from `OperatorVerified`.
+   * `null`/absent when the subgraph has not indexed the operator entity.
+   */
+  operatorVerified?: boolean | null;
+  /** World ID nullifier hash bound to the operator (decimal string); `null` when none. */
+  operatorNullifierHash?: string | null;
+  /** Unix seconds of the indexed `OperatorVerified` event; `null` when none. */
+  operatorVerifiedAt?: number | null;
+  /**
+   * `AetherisAgency.worldIdVerificationBypassed()` read on-chain. `true` means the
+   * contract has no World ID router, so `verifyOperator` burned the nullifier WITHOUT
+   * checking a ZK proof. `null` when the chain read failed / was not attempted.
+   */
+  worldIdBypassed?: boolean | null;
+  /** Whether this server has `NEXT_PUBLIC_WORLD_ID_APP_ID`, i.e. can relay real proofs. */
+  worldIdConfigured?: boolean;
+  /**
+   * Plain-language provenance of `operatorVerified` (e.g. "bypass mode — seed
+   * nullifier, no World ID proof"). Always honest; never claims a proof that was not relayed.
+   */
+  operatorVerificationNote?: string | null;
   totalJobs: number;
   activeJobs: number;
   settledJobs: number;
@@ -77,6 +107,8 @@ export interface AgencyStats {
   lifetimeMarginRaw: string;
   subAgentCount: number;
   hcsMessageCount: number;
+  /** Topic `hcsMessageCount` was counted against; absent when unknown. */
+  hcsTopicId?: string;
   /** Average Hedera consensus finality observed, milliseconds. */
   avgFinalityMs: number;
 }
