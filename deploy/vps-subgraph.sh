@@ -1,41 +1,72 @@
 #!/usr/bin/env bash
-# Aetheris - run the self-hosted Graph indexer for Hedera testnet on a VPS.
+# Aetheris - self-hosted Graph indexer for Hedera testnet, designed for a SHARED server.
 #
-#   curl -fsSL https://raw.githubusercontent.com/mrnetwork0001/Aetheris/main/deploy/vps-subgraph.sh | sudo bash
+# Safety contract:
+#   - Never installs or upgrades anything system-wide. Requires Docker + compose to
+#     already exist (set INSTALL_DOCKER=1 to opt in to the official installer).
+#   - Never touches other containers, services, firewall rules or ports. Runs as its
+#     own compose project ("aetheris") in its own directory with its own volumes.
+#   - Only binds ports that are FREE at start; aborts otherwise. Defaults avoid the
+#     common 8000/8020/5001. Admin + IPFS bind to 127.0.0.1 only.
+#   - `--check` performs read-only reconnaissance and changes nothing.
 #
-# What it does: installs Docker if missing, writes a compose stack (graph-node +
-# IPFS + Postgres) pointed at the Hedera JSON-RPC relay, exposes ONLY the GraphQL
-# port (8000) publicly - the admin (8020) and IPFS (5001) ports stay on
-# localhost so nobody can redeploy over the subgraph. Deploy the subgraph from
-# a laptop through an SSH tunnel:
+#   ./vps-subgraph.sh --check          # read-only: docker, ports, disk, memory
+#   ./vps-subgraph.sh                  # start the stack (asks nothing else of the host)
+#   ./vps-subgraph.sh --down           # stop and remove ONLY the aetheris containers
 #
-#   ssh -N -L 8020:127.0.0.1:8020 -L 5001:127.0.0.1:5001 user@VPS &
-#   npx graph create --node http://localhost:8020/ aetheris
-#   npx graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 \
+# Deploy the subgraph from a laptop through an SSH tunnel (admin is localhost-only):
+#   ssh -N -L 8120:127.0.0.1:8120 -L 5101:127.0.0.1:5101 user@VPS &
+#   npx graph create --node http://localhost:8120/ aetheris
+#   npx graph deploy --node http://localhost:8120/ --ipfs http://localhost:5101 \
 #       --version-label v0.0.1 aetheris subgraph/subgraph.yaml --output-dir subgraph/build
-#
-# GraphQL afterwards: http://VPS:8000/subgraphs/name/aetheris
+# GraphQL afterwards: http://VPS:${GRAPHQL_PORT}/subgraphs/name/aetheris
 set -euo pipefail
-DIR=/opt/aetheris-subgraph
+PROJECT=aetheris
+DIR="${AETHERIS_DIR:-$HOME/aetheris-subgraph}"
 RPC="${HEDERA_TESTNET_RPC:-https://testnet.hashio.io/api}"
+GRAPHQL_PORT="${GRAPHQL_PORT:-8100}"   # public
+ADMIN_PORT="${ADMIN_PORT:-8120}"       # 127.0.0.1 only
+STATUS_PORT="${STATUS_PORT:-8130}"     # 127.0.0.1 only
+IPFS_PORT="${IPFS_PORT:-5101}"         # 127.0.0.1 only
+
+port_in_use() { (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | awk '{print $4}' | grep -qE "[:.]$1\$"; }
+
+recon() {
+  echo "== read-only check =="
+  command -v docker >/dev/null 2>&1 && echo "docker: $(docker --version)" || echo "docker: MISSING"
+  docker compose version >/dev/null 2>&1 && echo "compose: $(docker compose version --short)" || echo "compose plugin: MISSING"
+  echo "existing containers (untouched):"; docker ps --format '  {{.Names}}  {{.Ports}}' 2>/dev/null || echo "  (cannot list)"
+  echo "listening ports:"; (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | awk 'NR>1{print "  "$4}' | sort -u | tr '\n' ' '; echo
+  for p in "$GRAPHQL_PORT" "$ADMIN_PORT" "$STATUS_PORT" "$IPFS_PORT"; do port_in_use "$p" && echo "port $p: IN USE (would abort)" || echo "port $p: free"; done
+  echo "disk: $(df -h / | awk 'NR==2{print $4" free of "$2}')   memory: $(free -h 2>/dev/null | awk '/Mem/{print $7" available of "$2}')"
+  echo "aetheris dir: $DIR $([ -d "$DIR" ] && echo '(exists)' || echo '(will be created)')"
+}
+
+case "${1:-}" in
+  --check) recon; exit 0 ;;
+  --down) cd "$DIR" && docker compose -p "$PROJECT" down; exit 0 ;;
+esac
 
 if ! command -v docker >/dev/null 2>&1; then
-  echo "[1/3] installing Docker"
-  curl -fsSL https://get.docker.com | sh
+  if [ "${INSTALL_DOCKER:-0}" = "1" ]; then curl -fsSL https://get.docker.com | sh; else
+    echo "Docker is not installed. Re-run with INSTALL_DOCKER=1 to opt in to the official installer, or install it yourself."; exit 1; fi
 fi
 docker compose version >/dev/null 2>&1 || { echo "docker compose plugin missing"; exit 1; }
+for p in "$GRAPHQL_PORT" "$ADMIN_PORT" "$STATUS_PORT" "$IPFS_PORT"; do
+  port_in_use "$p" && { echo "port $p is already in use on this host - aborting without changes. Override with GRAPHQL_PORT/ADMIN_PORT/STATUS_PORT/IPFS_PORT."; exit 1; }
+done
 
-echo "[2/3] writing $DIR/docker-compose.yml"
 mkdir -p "$DIR/data/ipfs" "$DIR/data/postgres"
 cat > "$DIR/docker-compose.yml" <<YAML
+name: ${PROJECT}
 services:
   graph-node:
-    image: graphprotocol/graph-node:latest
+    image: graphprotocol/graph-node:v0.36.1
     restart: unless-stopped
     ports:
-      - "8000:8000"            # GraphQL - public
-      - "127.0.0.1:8020:8020"  # admin  - localhost only (deploy via SSH tunnel)
-      - "127.0.0.1:8030:8030"  # indexing status - localhost only
+      - "${GRAPHQL_PORT}:8000"              # GraphQL - public
+      - "127.0.0.1:${ADMIN_PORT}:8020"      # admin - localhost only
+      - "127.0.0.1:${STATUS_PORT}:8030"     # indexing status - localhost only
     depends_on: [ipfs, postgres]
     environment:
       postgres_host: postgres
@@ -50,7 +81,7 @@ services:
     image: ipfs/kubo:v0.29.0
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5001:5001"  # localhost only
+      - "127.0.0.1:${IPFS_PORT}:5001"       # localhost only
     volumes: ["$DIR/data/ipfs:/data/ipfs"]
   postgres:
     image: postgres:14
@@ -65,8 +96,8 @@ services:
     volumes: ["$DIR/data/postgres:/var/lib/postgresql/data"]
 YAML
 
-echo "[3/3] starting the stack"
-cd "$DIR" && docker compose up -d
-for i in $(seq 1 60); do curl -s -o /dev/null -m 2 http://127.0.0.1:8030/ && break; sleep 3; done
+cd "$DIR" && docker compose -p "$PROJECT" up -d
+for i in $(seq 1 60); do curl -s -o /dev/null -m 2 "http://127.0.0.1:${STATUS_PORT}/" && break; sleep 3; done
 echo
-echo "graph-node is up. Open port 8000 in your firewall (ufw allow 8000/tcp) and deploy the subgraph through an SSH tunnel - see the header of this script."
+echo "aetheris stack is up (project '$PROJECT', dir $DIR). Nothing else on this host was touched."
+echo "If a firewall blocks ${GRAPHQL_PORT}, allow it yourself (e.g. ufw allow ${GRAPHQL_PORT}/tcp) - this script never edits firewall rules."
