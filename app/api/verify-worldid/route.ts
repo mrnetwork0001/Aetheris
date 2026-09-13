@@ -46,11 +46,29 @@ export async function POST(request: Request): Promise<NextResponse> {
   const body = await readJsonObject(request);
   if (!body.ok) return body.response;
 
+  // World ID 4.0: the IDKit result is forwarded as-is to /api/v4/verify/{rp_id}.
+  const v4Candidate = "result" in body.value ? body.value.result : body.value;
+  try {
+    const lib = await import("@/lib/worldid");
+    if (lib.isIdKitResultV4(v4Candidate)) {
+      const v4 = await lib.verifyWorldIdV4(v4Candidate);
+      if (!v4.success) {
+        return NextResponse.json(
+          { error: { code: "PROOF_REJECTED", message: "World ID rejected this proof.", details: v4.detail ?? "No detail returned by the verifier." } },
+          { status: 401 },
+        );
+      }
+      return NextResponse.json({ success: true, version: "4", nullifierHash: v4.nullifier, verificationLevel: "orb" });
+    }
+  } catch (error) {
+    return upstreamFailure("World ID verifier is unreachable.", describeError(error));
+  }
+
   const proof = parseProof(body.value.proof);
   if (proof === null) {
     return badRequest(
       "Missing or malformed World ID proof.",
-      `\`proof\` must contain: ${PROOF_FIELDS.join(", ")}.`,
+      `Send either an IDKit 4.0 result ({protocol_version:"4.0", responses:[…]} or {result, signal}) or a legacy \`proof\` containing: ${PROOF_FIELDS.join(", ")}.`,
     );
   }
 

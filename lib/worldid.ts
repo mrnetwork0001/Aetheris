@@ -226,3 +226,84 @@ export function encodeProofForContract(proof: WorldIdProof): {
     );
   }
 }
+
+/* ── World ID 4.0 (relying-party scoped) ─────────────────────────────────────
+   Actions created in the current Developer Portal are 4.0 actions scoped to the
+   app's relying party. The legacy `/api/v2/verify/{app_id}` endpoint answers
+   "Action not found" for them; `/api/v4/verify/{rp_id}` verifies the IDKit v4
+   result forwarded as-is. Keep the v3 path above for legacy proofs. */
+
+export type IdKitResultV4 = {
+  protocol_version: '4.0';
+  nonce?: string;
+  action?: string;
+  environment?: string;
+  responses: Array<{
+    identifier?: string;
+    signal_hash?: string;
+    proof?: unknown;
+    nullifier?: string;
+    session_nullifier?: string[];
+    issuer_schema_id?: number;
+    expires_at_min?: number;
+  }>;
+  user_presence_completed?: boolean;
+} & Record<string, unknown>;
+
+/** True when `value` looks like an IDKit 4.0 result (`protocol_version` 4.0 + `responses[]`). */
+export function isIdKitResultV4(value: unknown): value is IdKitResultV4 {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return v.protocol_version === '4.0' && Array.isArray(v.responses) && v.responses.length > 0;
+}
+
+/** The RP-scoped nullifier of the first response (uniqueness or session), or null. */
+export function extractV4Nullifier(result: IdKitResultV4): string | null {
+  const first = result.responses[0] ?? {};
+  if (typeof first.nullifier === 'string' && first.nullifier.length > 0) return first.nullifier;
+  const session = first.session_nullifier;
+  if (Array.isArray(session) && typeof session[0] === 'string' && session[0].length > 0) return session[0];
+  return null;
+}
+
+/**
+ * Verify an IDKit 4.0 result against `POST {WORLD_ID_API_BASE}/api/v4/verify/{rp_id}`.
+ * Server-only. Requires `WORLD_ID_RP_ID`. 4xx → `{ success: false, detail }`; network
+ * failure → throws `WorldIdVerificationError`.
+ */
+export async function verifyWorldIdV4(
+  result: IdKitResultV4,
+): Promise<{ success: boolean; detail?: string; nullifier: string | null }> {
+  assertServerOnly('lib/worldid.ts#verifyWorldIdV4');
+  const rpId = optionalEnv('WORLD_ID_RP_ID');
+  if (!rpId) {
+    return { success: false, nullifier: null, detail: 'WORLD_ID_RP_ID is not configured; cannot verify World ID 4.0 proofs.' };
+  }
+  const base = optionalEnv('WORLD_ID_API_BASE', DEFAULT_WORLD_ID_API_BASE).replace(/\/+$/, '');
+  const url = `${base}/api/v4/verify/${encodeURIComponent(rpId)}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result),
+      cache: 'no-store',
+    });
+  } catch (cause) {
+    throw new WorldIdVerificationError(
+      `Could not reach the World ID v4 verifier at ${url}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      0,
+    );
+  }
+  const raw = await response.text();
+  let parsed: Record<string, unknown> = {};
+  try { parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {}; } catch { parsed = {}; }
+  const nullifier = extractV4Nullifier(result);
+  if (response.ok && parsed.success !== false) return { success: true, nullifier };
+  const detail =
+    (typeof parsed.detail === 'string' && parsed.detail) ||
+    (typeof parsed.error === 'string' && parsed.error) ||
+    (typeof parsed.code === 'string' && `${parsed.code}${parsed.attribute ? ` (${String(parsed.attribute)})` : ''}`) ||
+    (raw ? raw.slice(0, 200) : `HTTP ${response.status}`);
+  return { success: false, nullifier, detail };
+}
