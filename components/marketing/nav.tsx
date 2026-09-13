@@ -62,7 +62,7 @@ export function Nav() {
             : "border-transparent bg-transparent",
       )}
     >
-      <div className="fl-wrap flex h-16 items-center justify-between gap-4 !max-w-[1350px] !px-[18px] sm:!px-[45px]">
+      <div className="fl-wrap flex h-16 items-center justify-between gap-4 !max-w-none !px-4 sm:!px-8">
         <Link href="/" aria-label="Aetheris home" className="rounded-md">
           <Logo size={30} light />
         </Link>
